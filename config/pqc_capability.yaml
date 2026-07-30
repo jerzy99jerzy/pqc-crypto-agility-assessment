@@ -1,0 +1,69 @@
+# PQC capability thresholds for crypto libraries.
+#
+# Answers the question that actually gates a migration plan: on how many hosts
+# is the crypto stack even capable of negotiating a hybrid key exchange. A host
+# below the threshold is a package-upgrade ticket, not a crypto-policy ticket,
+# and separating those two populations is most of the work.
+#
+# `pqc_hybrid_kex_from` is the first version where a hybrid PQC key agreement
+# group is available to TLS 1.3 clients and servers using the library defaults
+# or a supported configuration switch.
+#
+# `null` means unknown. Unknown stays unknown: the resolver reports it as such
+# rather than guessing, because a wrong threshold silently reclassifies an
+# entire population and nobody rechecks a number that already looks plausible.
+
+version: 1.0
+updated: 2026-07-29
+
+libraries:
+  openssl:
+    pqc_hybrid_kex_from: "3.5.0"
+    provenance: measured
+    note: >
+      X25519MLKEM768 available and among the default groups. 3.5 is an LTS
+      release supported to April 2030.
+    references:
+      - https://openssl-library.org/news/openssl-3.5-notes/
+
+  gnutls:
+    pqc_hybrid_kex_from: null
+    provenance: unknown
+    note: >
+      Threshold not verified. Fill in from the distribution's changelog for the
+      build actually deployed, then flip provenance to measured. Left null on
+      purpose: see the header.
+
+  nss:
+    pqc_hybrid_kex_from: null
+    provenance: unknown
+    note: Threshold not verified for the deployed build.
+
+  wolfssl:
+    pqc_hybrid_kex_from: null
+    provenance: unknown
+    note: Threshold not verified for the deployed build.
+
+  libressl:
+    pqc_hybrid_kex_from: null
+    provenance: unknown
+    note: Threshold not verified for the deployed build.
+
+  boringssl:
+    pqc_hybrid_kex_from: null
+    provenance: not_applicable
+    note: >
+      Vendored per product and versioned by commit rather than by a comparable
+      release string. Capability must be attributed to the consuming product,
+      not to a library version. Any inventory row naming boringssl is reported
+      as unknown by design.
+
+# Substring patterns that map an inventory row to a library key above.
+# Matched case-insensitively against the software name and vendor.
+name_patterns:
+  openssl: [openssl, "libssl", "libcrypto"]
+  gnutls: [gnutls]
+  nss: ["nss", "libnss3", "network security services"]
+  wolfssl: [wolfssl]
+  libressl: [libressl]
+  boringssl: [boringssl]

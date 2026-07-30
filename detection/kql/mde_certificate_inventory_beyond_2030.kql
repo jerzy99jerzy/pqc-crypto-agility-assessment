@@ -1,0 +1,33 @@
+// Quantum-vulnerable certificates on managed endpoints, valid past 2030-12-31.
+//
+// Table: DeviceTvmCertificateInfo (Defender Vulnerability Management).
+// Schema status: [inference] column names verified against Microsoft
+// documentation, not against a live tenant. Run `DeviceTvmCertificateInfo
+// | getschema` before relying on the projection.
+//
+// Why this table matters for PQC: it is one of very few enterprise data sources
+// that reports certificate key size and signature algorithm per endpoint
+// without deploying anything new. It covers the certificate store on the host,
+// which is where the internal PKI and machine identities live - the estate that
+// passive external scanning cannot see at all.
+//
+// Output: one row per certificate class, with device counts. Deliberately
+// aggregated: a per-certificate list is 10^5 rows and gets ignored.
+
+let milestone = datetime(2030-12-31);
+DeviceTvmCertificateInfo
+| where ExpirationDate > milestone
+| extend KeyFamily = case(
+    SignatureAlgorithm has "RSA", "RSA",
+    SignatureAlgorithm has "ECDSA", "ECDSA",
+    SignatureAlgorithm has "DSA", "DSA",
+    SignatureAlgorithm has_any ("ML-DSA", "SLH-DSA", "Dilithium"), "PQC",
+    "other")
+| extend QuantumVulnerable = KeyFamily in ("RSA", "ECDSA", "DSA")
+| summarize
+    Certificates = dcount(Thumbprint),
+    Devices = dcount(DeviceId),
+    EarliestExpiry = min(ExpirationDate),
+    LatestExpiry = max(ExpirationDate)
+  by KeyFamily, KeySize, QuantumVulnerable, IsSelfSigned
+| order by Certificates desc

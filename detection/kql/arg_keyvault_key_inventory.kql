@@ -1,0 +1,37 @@
+// Key Vault key inventory by algorithm family - Azure Resource Graph.
+//
+// Run against Azure Resource Graph (portal, az graph query, Resource Graph
+// Explorer), not Sentinel. ARG speaks a KQL subset over the `resources` table.
+// Schema status: [inference] property paths verified against documentation and
+// the ARM representation of Microsoft.KeyVault/vaults/keys; confirm on one
+// subscription before running tenant-wide.
+//
+// Why include a control-plane query in a detection folder: HNDL exposure lives
+// in stored key material as much as in traffic. Key Vault is one of the few
+// places where an organisation's asymmetric keys are enumerable at all,
+// programmatically, with no agent. It is also the estate that a passive
+// certificate assessment provably cannot see - see the README section on what
+// this assessment will not tell you.
+//
+// Note that key listing requires the key metadata to be exposed to ARG; keys
+// in vaults with restricted RBAC will silently not appear. Absence here is not
+// evidence of absence in the vault.
+
+resources
+| where type =~ "microsoft.keyvault/vaults/keys"
+| extend kty = tostring(properties.kty)
+| extend keySize = toint(properties.keySize)
+| extend curve = tostring(properties.curveName)
+| extend enabled = tobool(properties.attributes.enabled)
+| extend expires = todatetime(properties.attributes.exp)
+| extend QuantumVulnerable = kty in~ ("RSA", "RSA-HSM", "EC", "EC-HSM")
+| extend OutlivesMilestone = isnull(expires) or expires > datetime(2030-12-31)
+| summarize
+    Keys = count(),
+    Vaults = dcount(split(id, "/")[8]),
+    NoExpirySet = countif(isnull(expires))
+  by kty, keySize, curve, QuantumVulnerable, OutlivesMilestone, subscriptionId
+| order by Keys desc
+// NoExpirySet is the crypto-agility tell worth reading first: a key with no
+// expiry is a key nobody has planned to rotate, which makes it a key nobody has
+// planned to migrate.

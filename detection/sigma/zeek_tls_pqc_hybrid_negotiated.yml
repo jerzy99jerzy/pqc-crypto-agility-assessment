@@ -1,0 +1,47 @@
+title: PQC Hybrid Key Exchange Negotiated
+id: 8c1f0b1e-3f0a-4d64-9a3e-6d0c9a9b1a02
+status: experimental
+description: >
+  Positive-signal rule. Fires when a TLS session completes using a hybrid
+  post-quantum key agreement group. Paired with the classical-only inventory
+  rule, this pair is the numerator and denominator of a migration metric that a
+  SOC can actually report on monthly.
+  Naming caveat: sensors resolve group codepoints against their own tables.
+  Zeek builds without an entry for 0x11EC (4588) will log the group as
+  'unknown-4588' rather than 'X25519MLKEM768'. Both spellings are matched, and
+  the numeric form should be validated against the local sensor build before
+  the rule is trusted as complete.
+references:
+  - https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
+  - https://www.rfc-editor.org/rfc/rfc9794.html
+author: pqc-crypto-agility-assessment
+date: 2026-07-28
+tags:
+  - pqc.inventory
+  - pqc.migration
+logsource:
+  product: zeek
+  service: ssl
+detection:
+  hybrid_named:
+    curve|contains:
+      - 'MLKEM'
+      - 'mlkem'
+      - 'Kyber'
+      - 'kyber'
+  hybrid_codepoint:
+    curve:
+      - 'unknown-4588'   # 0x11EC X25519MLKEM768
+      - 'unknown-4587'   # 0x11EB SecP256r1MLKEM768
+      - 'unknown-4589'   # 0x11ED SecP384r1MLKEM1024
+  condition: hybrid_named or hybrid_codepoint
+fields:
+  - id.resp_h
+  - server_name
+  - version
+  - cipher
+  - curve
+falsepositives:
+  - Sensor codepoint tables drifting between builds, producing a different
+    'unknown-N' spelling. Verify against `openssl list -tls-groups` output.
+level: informational

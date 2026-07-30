@@ -1,0 +1,92 @@
+# HNDL (Harvest Now, Decrypt Later) scoring configuration.
+#
+# Every number in this file is a policy choice, not a measurement. It lives in
+# config precisely so that a reviewer can disagree with it, change it, and rerun
+# without touching code. If you find a weight hardcoded in scoring/hndl_score.py,
+# that is a bug.
+#
+# provenance legend:
+#   measured    - read from a certificate or a handshake
+#   assumption  - chosen by the analyst, defensible but not observed
+#   speculation - explicitly uncertain, carried through to the output
+
+version: 1.1
+updated: 2026-07-29
+
+milestone:
+  # EU coordinated roadmap: high-risk use cases must no longer rely on
+  # quantum-vulnerable public-key mechanisms alone beyond this date.
+  date: 2030-12-31
+  provenance: measured
+  source: "Commission Recommendation (EU) 2024/1101 + Coordinated Implementation Roadmap 2025-06-23"
+
+# Required confidentiality lifetime of data in transit, by sector, in years.
+# THIS IS THE LOAD-BEARING ASSUMPTION OF THE WHOLE MODEL.
+# It is not derived from any data classification the assessment can see. It is
+# a sector-typical estimate. Change it and the ranking changes.
+confidentiality_horizon_years:
+  provenance: assumption
+  rationale: >
+    Derived from statutory retention and secrecy expectations, not from any
+    observed data inventory. Health and financial records carry decades-long
+    confidentiality expectations; marketing and public-content traffic does not.
+  default: 5
+  by_sector:
+    healthcare: 30
+    government: 25
+    defence: 30
+    finance: 15
+    insurance: 20
+    legal: 20
+    energy: 15
+    telecom: 10
+    education: 7
+    retail: 5
+    media: 3
+    marketing: 2
+
+# Component weights. Normalised internally; relative magnitude is what matters.
+weights:
+  key_vulnerability: 0.30
+  signature_vulnerability: 0.15
+  horizon_pressure: 0.30
+  certificate_outlives_milestone: 0.15
+  rotation_agility: 0.10
+
+# Component parameters.
+parameters:
+  # Exposure years beyond the milestone that saturate the horizon_pressure term.
+  #
+  # `derived` computes the cap from the longest configured sector horizon, so
+  # no configured sector can saturate and the two numbers cannot drift apart
+  # when a horizon is edited. A fixed number is still accepted; validate_config
+  # will then report which sectors saturate, so the trade-off is stated rather
+  # than discovered.
+  #
+  # History: this was 20 while the longest horizon was 30. healthcare, defence
+  # and government all clamped to 1.0 on a component carrying weight 0.30, so
+  # the three highest-risk sectors scored identically. Two independent numbers
+  # in one config that silently had to agree.
+  horizon_pressure_cap_years: derived
+  # Certificate validity beyond this length is treated as a crypto-agility
+  # signal: infrastructure that rotates slowly migrates slowly.
+  # 398 days is the CA/Browser Forum maximum for publicly trusted TLS certs.
+  agility_validity_days_threshold: 398
+  # RSA below this modulus size gets no additional penalty here - classical
+  # break-by-Shor does not care about modulus size. Kept for reporting only.
+  rsa_reporting_threshold_bits: 2048
+
+# Score bands, applied to the weighted score in [0, 1].
+bands:
+  - {name: low,      min: 0.00}
+  - {name: moderate, min: 0.35}
+  - {name: elevated, min: 0.55}
+  - {name: high,     min: 0.75}
+
+# Carried into every report as an explicit uncertainty, never used in arithmetic.
+q_day:
+  provenance: speculation
+  statement: >
+    No usable estimate of a cryptographically relevant quantum computer arrival
+    date is used in this model. The model is anchored to a regulatory milestone,
+    which is an observable fact, rather than to a forecast, which is not.

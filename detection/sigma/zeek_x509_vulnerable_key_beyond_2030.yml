@@ -1,0 +1,47 @@
+title: Quantum-Vulnerable Certificate Valid Beyond the 2030 Milestone
+id: 8c1f0b1e-3f0a-4d64-9a3e-6d0c9a9b1a03
+status: experimental
+description: >
+  Surfaces observed X.509 certificates that use a Shor-breakable public key
+  (RSA, ECDSA) and remain valid past 2030-12-31, the date after which EU
+  guidance holds that high-risk use cases must not rely on quantum-vulnerable
+  public-key mechanisms alone. These are the certificates whose replacement is
+  already scheduled by regulation, whether or not anyone has scheduled it.
+  Long-lived internal PKI and machine identities dominate the results; that is
+  the point, since those are exactly the assets missing from most inventories.
+references:
+  - https://csrc.nist.gov/pubs/fips/204/final
+  - https://eur-lex.europa.eu/eli/reco/2024/1101/oj
+author: pqc-crypto-agility-assessment
+date: 2026-07-28
+tags:
+  - pqc.inventory
+logsource:
+  product: zeek
+  service: x509
+detection:
+  vulnerable_key:
+    certificate.key_alg:
+      - 'rsaEncryption'
+      - 'id-ecPublicKey'
+      - 'dsaEncryption'
+  long_lived:
+    # Zeek logs certificate validity as a Unix timestamp (double), and the gte
+    # modifier is numeric-only. 1924992000 == 2031-01-01T00:00:00Z.
+    # Backends that normalise this field to a datetime will need the value
+    # rewritten; that is a pipeline concern, not a rule concern.
+    certificate.not_valid_after|gte: 1924992000
+  condition: vulnerable_key and long_lived
+fields:
+  - certificate.subject
+  - certificate.issuer
+  - certificate.key_alg
+  - certificate.key_length
+  - certificate.sig_alg
+  - certificate.not_valid_after
+falsepositives:
+  - Root and intermediate CA certificates observed in chains, which are expected
+    to be long-lived. Filter on certificate depth or basicConstraints if the
+    sensor exposes it; do not filter them out silently, since CA key algorithms
+    are themselves a migration dependency.
+level: informational

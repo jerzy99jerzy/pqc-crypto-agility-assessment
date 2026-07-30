@@ -1,0 +1,17 @@
+# Raw, host-level collection output never enters version control.
+data/raw/
+config/targets.yaml
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Real handshake transcripts captured for audit stay out of VCS
+captures/
+*.transcript.txt

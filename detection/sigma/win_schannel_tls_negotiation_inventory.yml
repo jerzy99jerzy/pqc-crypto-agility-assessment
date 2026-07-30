@@ -1,0 +1,41 @@
+title: Windows Schannel TLS Negotiation Crypto Inventory
+id: 8c1f0b1e-3f0a-4d64-9a3e-6d0c9a9b1a04
+status: experimental
+description: >
+  Endpoint-side counterpart to the network inventory rules. Schannel event 36880
+  records the protocol version, cipher suite and key exchange algorithm of each
+  negotiated TLS session, which gives crypto visibility on hosts whose traffic
+  never crosses a network sensor - remote endpoints, egress over split tunnel,
+  east-west traffic in flat segments.
+  Operational prerequisite, and the reason this rule is often useless as
+  written: Schannel event logging is disabled by default and is controlled by
+  the EventLogging value under
+  HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL.
+  Enabling it fleet-wide produces very high volume. Scope it to a
+  representative sample of servers for inventory purposes rather than
+  everything.
+references:
+  - https://learn.microsoft.com/en-us/troubleshoot/windows-server/certificates-and-public-key-infrastructure-pki/schannel-event-logging
+author: pqc-crypto-agility-assessment
+date: 2026-07-28
+tags:
+  - pqc.inventory
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    Provider_Name: 'Schannel'
+    EventID: 36880
+  condition: selection
+fields:
+  - Computer
+  - EventID
+  - Protocol
+  - CipherSuite
+  - ExchangeStrength
+falsepositives:
+  - None in the alerting sense. This is a telemetry-collection rule; if it is
+    routed to an analyst queue rather than a summary table it has been deployed
+    incorrectly.
+level: informational

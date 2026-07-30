@@ -1,0 +1,33 @@
+// PQC migration burndown from Azure Application Gateway access logs.
+//
+// Tables: AGWAccessLogs (resource-specific) or AzureDiagnostics with
+// Category == "ApplicationGatewayAccessLog" (legacy Azure Diagnostics mode).
+// Schema status: [inference] field names differ between the two collection
+// modes; the legacy variant suffixes types (sslCipher_s, sslProtocol_s).
+// Confirm which mode the workspace uses before scheduling this.
+//
+// Caveat that has to travel with the output: the access log records the
+// negotiated cipher suite and protocol version. TLS 1.3 cipher suites do not
+// encode the key exchange group, so this query measures protocol and symmetric
+// suite posture, and only indirectly the key agreement. It is a useful
+// weekly trend for a public entry point; it is not evidence of key-exchange
+// PQC readiness. That distinction is exactly the one most vendor dashboards
+// blur.
+
+let window = 30d;
+AzureDiagnostics
+| where TimeGenerated > ago(window)
+| where Category == "ApplicationGatewayAccessLog"
+| extend Protocol = coalesce(column_ifexists("sslProtocol_s", ""), "none")
+| extend Cipher = coalesce(column_ifexists("sslCipher_s", ""), "none")
+| extend TlsPosture = case(
+    Protocol == "none",     "cleartext_or_passthrough",
+    Protocol == "TLSv1.3",  "tls13",
+    Protocol startswith "TLSv1.2", "tls12",
+    "legacy")
+| summarize Requests = count() by bin(TimeGenerated, 1d), TlsPosture, Cipher
+| order by TimeGenerated asc
+// Reporting note: a rising tls13 share is a precondition for hybrid key
+// exchange, not a measurement of it. To measure the group itself you need
+// either a client-side handshake probe (see active/handshake_demo.py) or a
+// sensor that logs supported_groups / key_share.

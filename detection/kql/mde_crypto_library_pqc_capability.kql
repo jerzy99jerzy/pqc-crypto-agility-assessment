@@ -1,0 +1,43 @@
+// Crypto library inventory, classified by whether the version can do PQC at all.
+//
+// Table: DeviceTvmSoftwareInventory.
+// Schema status: [inference] verified against documentation, not a live tenant.
+//
+// The question this answers is the one that actually gates a migration plan:
+// not "should we adopt ML-KEM" but "on how many hosts is the crypto stack even
+// capable of it". A host running OpenSSL 3.0 cannot negotiate a hybrid group
+// no matter what policy says, so it is a package-upgrade ticket, not a
+// crypto-policy ticket. Separating those two populations is most of the work.
+//
+// Capability thresholds [measured, from upstream release notes]:
+//   OpenSSL   >= 3.5   ML-KEM hybrid groups available and default
+//   BoringSSL          vendored per-product; version string is not comparable
+//   GnuTLS / NSS / wolfSSL - thresholds must be filled in per environment
+//     before this query is trusted; left explicit rather than guessed.
+
+let pqc_capable_openssl = "3.5";
+DeviceTvmSoftwareInventory
+| where SoftwareName has_any ("openssl", "gnutls", "nss", "wolfssl", "libressl", "bouncycastle")
+| extend Family = case(
+    SoftwareName has "openssl",  "openssl",
+    SoftwareName has "gnutls",   "gnutls",
+    SoftwareName has "wolfssl",  "wolfssl",
+    SoftwareName has "libressl", "libressl",
+    SoftwareName has "nss",      "nss",
+    "other")
+| extend PqcCapable = case(
+    Family == "openssl" and toreal(coalesce(toreal(split(SoftwareVersion, ".")[0]), 0.0)) > 3.0, "verify",
+    Family == "openssl", "no",
+    "unknown")
+| summarize
+    Devices = dcount(DeviceId),
+    Versions = make_set(SoftwareVersion, 50)
+  by Family, PqcCapable
+| order by Devices desc
+// The "verify" bucket is deliberate. KQL has no safe semantic version
+// comparison: 3.10 is not less than 3.5 as a float, and getting that backwards
+// misclassifies exactly the hosts that have already been upgraded. Export this
+// result and resolve the verdict with inventory/pqc_capability.py, which does
+// component-wise comparison against thresholds carrying their own provenance
+// labels. Libraries with no verified threshold resolve to unknown rather than
+// being folded into not_capable.

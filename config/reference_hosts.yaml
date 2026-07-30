@@ -1,0 +1,19 @@
+# Allowlist for active/handshake_demo.py.
+#
+# The probe refuses any host absent from this file. This is the enforcement
+# point for the scope statement in the README: a rule that only lives in prose
+# is a rule that gets broken at 02:00.
+#
+# self       - infrastructure the operator owns and is authorised to test
+# reference  - public implementations documented as PQC-enabled, serving
+#              internet-scale traffic, used here as positive controls for the
+#              method itself. One handshake each, indistinguishable from any
+#              browser connection.
+
+self:
+  # - hbcc.example            # [to confirm] operator-owned domain
+  []
+
+reference:
+  - cloudflare.com
+  - www.google.com

@@ -1,0 +1,26 @@
+# Passive collection targets, grouped by sector.
+#
+# Copy to config/targets.yaml (git-ignored) and populate.
+# The working file is deliberately NOT committed: a public list of named
+# organisations sitting next to a crypto-posture report reads as a target list,
+# regardless of the fact that every byte came from public CT logs.
+#
+# Selection method should be stated in docs/methodology.md. A defensible one:
+# take the Tranco top-N for the country ccTLD, classify into NIS2/DORA-relevant
+# sectors, keep the classification rules in this file so they can be reviewed.
+#
+# Minimum bucket size is enforced at aggregation time (--min-bucket, default 5).
+# A sector with fewer hosts than that is dropped from the output entirely.
+
+sectors:
+  finance:
+    - example.com
+    - example.org
+  healthcare:
+    - example.net
+  government:
+    - example.edu
+  energy: []
+  telecom: []
+  insurance: []
+  retail: []

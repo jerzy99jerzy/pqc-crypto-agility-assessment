@@ -1,0 +1,50 @@
+# Sector classification rules for target selection.
+#
+# These rules are the sampling method. They are hashed into
+# data/aggregates/selection_manifest.json so a published figure can be traced
+# back to the exact ruleset that produced its denominator.
+#
+# Matching order per sector: exact, then contains, then suffix. First match
+# wins and the winning rule is recorded per domain in the hit counts.
+#
+# Honest limitation [inference]: keyword classification of domain names is
+# crude. A domain containing "bank" is probably a bank; a bank whose domain
+# contains none of these tokens is invisible to it. For anything published,
+# replace the `contains` heuristics with an authoritative register: KNF lists
+# for supervised financial entities, NFZ or Ministry of Health registers for
+# healthcare, the public-entity register for government. The heuristics below
+# are a starting point for a sample, not a substitute for a register.
+#
+# Sector names must match the keys in scoring/weights.yaml
+# confidentiality_horizon_years.by_sector, otherwise scoring silently falls
+# back to the default horizon.
+
+rules:
+  finance:
+    contains: [bank, kredyt, leasing, invest, fundusz, brokers, giełda, gielda, platnosc, payment]
+    suffix: [".bank"]
+  insurance:
+    contains: [ubezpiecz, insurance, assekur, towarzystwoubezpieczen]
+  healthcare:
+    contains: [szpital, przychodnia, klinik, medyc, zdrowie, health, apteka, laborator, diagnost]
+  government:
+    suffix: [".gov.pl", ".gov", ".mil.pl"]
+    contains: [ministerstwo, urzad, urząd, powiat, gmina, samorzad]
+  energy:
+    # `gaz` was narrowed after the collision detector reported it stealing
+    # `gazeta` from the media sector. Substring rules on Polish stems collide
+    # often; when they do, narrow the token rather than reordering the config,
+    # because reordering only moves the collision to a different sector.
+    contains: [energ, gazow, "gaz-", cieplo, ciepło, elektrown, grid, oze]
+    exclude: [gazeta, gazet]
+  telecom:
+    contains: [telekom, telecom, mobile, orange, gsm, internet, fiber, swiatlowod]
+  education:
+    suffix: [".edu.pl", ".edu"]
+    contains: [uniwersytet, politechnika, uczelnia, szkola, szkoła]
+  legal:
+    contains: [kancelaria, adwokat, radcaprawny, notariusz, legal]
+  retail:
+    contains: [sklep, shop, store, market, zakupy, moda]
+  media:
+    contains: [gazeta, radio, tvn, portal, news, redakcja]
