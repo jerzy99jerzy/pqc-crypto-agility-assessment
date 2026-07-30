@@ -15,8 +15,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
 
 from collectors.disclosure import (  # noqa: E402
     DisclosureViolation,

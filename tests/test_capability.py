@@ -15,8 +15,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
 
 from collectors.disclosure import DisclosureViolation, assert_no_host_identifiers  # noqa: E402
 from inventory.pqc_capability import (  # noqa: E402
@@ -64,11 +62,30 @@ def test_openssl_threshold_verdicts(cfg):
 
 
 def test_missing_threshold_is_unknown_not_not_capable(cfg):
-    """The whole point: an unverified threshold must not be folded into a verdict."""
-    for library in ("gnutls", "nss", "wolfssl", "libressl"):
+    """The whole point: an unverified threshold must not be folded into a verdict.
+
+    Reads the config rather than hardcoding which libraries are still null, so
+    filling a threshold in a later sprint does not silently break this guard.
+    """
+    null_libs = [name for name, spec in cfg["libraries"].items()
+                 if spec.get("pqc_hybrid_kex_from") is None
+                 and spec.get("provenance") != "not_applicable"]
+    assert null_libs, "expected at least one unverified library while some remain null"
+    for library in null_libs:
         result = resolve(library, "99.0.0", cfg)
         assert result["verdict"] == "unknown", library
         assert result["threshold"] is None
+
+
+def test_verified_thresholds_produce_real_verdicts(cfg):
+    """Libraries with a measured threshold must actually discriminate."""
+    verified = [name for name, spec in cfg["libraries"].items()
+                if spec.get("pqc_hybrid_kex_from") is not None]
+    assert "openssl" in verified and "gnutls" in verified and "wolfssl" in verified
+    for library in verified:
+        threshold = cfg["libraries"][library]["pqc_hybrid_kex_from"]
+        assert resolve(library, threshold, cfg)["verdict"] == "capable"
+        assert resolve(library, "0.0.1", cfg)["verdict"] == "not_capable"
 
 
 def test_boringssl_is_unknown_by_design(cfg):

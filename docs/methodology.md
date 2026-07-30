@@ -1,6 +1,7 @@
 # Methodology
 
-Version 4.0, 2026-07-29. Sprint 4: handshake parser tests, TODO/LICENSE/CONTRIBUTING.
+Version 5.0, 2026-07-29. Sprint 5: verified capability thresholds, packaging,
+coverage floor, detailed runbook. Sprint 4: handshake parser tests, TODO/LICENSE/CONTRIBUTING.
 Sprint 3: capability resolution, collection-path tests,
 defect log. Sprint 2: selection manifest, exposure-cap fix, executable
 disclosure guard, report generation, CI.
@@ -270,13 +271,16 @@ the hosts that have already been upgraded. OpenSSL letter releases (`1.1.1w`)
 and distribution suffixes (`3.5.0+deb12u2`) parse into ordered components rather
 than failing.
 
-Thresholds live in `config/pqc_capability.yaml` and carry provenance. Only
-OpenSSL currently has a `measured` threshold, 3.5.0. GnuTLS, NSS, wolfSSL and
-LibreSSL are `null`, which resolves to `unknown`. Folding them into
-`not_capable` would produce a cleaner-looking report that overstates the problem
-with numbers nobody verified. BoringSSL is `not_applicable`: it is vendored per
-product and versioned by commit, so capability belongs to the consuming product,
-not to a comparable release string.
+Thresholds live in `config/pqc_capability.yaml` and carry provenance. OpenSSL
+3.5.0, GnuTLS 3.8.8 and wolfSSL 5.8.0 are `measured` with reference URLs to
+their release notes. GnuTLS shipped `X25519MLKEM768` as experimental in 3.8.8
+(2024-11-05) following draft-kwiatkowski-tls-ecdhe-mlkem; wolfSSL shipped the
+standardised-codepoint hybrid groups in 5.8.0 (2025-05), which is the
+interoperable boundary rather than the first appearance of any hybrid group.
+NSS and LibreSSL are `null` and resolve to `unknown`: NSS has shipped hybrid PQ
+groups but the exact release cutover was not confirmed against a primary source
+here, and a wrong threshold silently reclassifies a whole population. BoringSSL
+is `not_applicable`, vendored per product.
 
 Capability is a precondition, not behaviour. A capable host can still negotiate
 a classical group because of policy, a middlebox or a peer that never offers a
@@ -317,7 +321,7 @@ this is what its false positives cost.
 - `[verify]` Defender table columns (`DeviceTvmCertificateInfo`, `DeviceTvmSoftwareInventory`) against a live tenant with `getschema`.
 - `[verify]` Application Gateway log field naming for the workspace's diagnostics collection mode.
 - `[verify]` The active handshake success path cannot be executed here: no OpenSSL 3.5 has been available in any environment used so far. The subprocess call is therefore unverified, but the output parser is now tested against synthetic transcripts (`tests/test_handshake.py`), so a real success result will be read correctly when a 3.5 client is available.
-- `[todo]` PQC capability thresholds for GnuTLS, NSS, wolfSSL and LibreSSL. Deliberately `null` until verified against the deployed build.
+- `[todo]` NSS and LibreSSL capability cutover versions. GnuTLS and wolfSSL verified in sprint 5; NSS/LibreSSL still `null` -> `unknown`.
 - `[todo]` Censys client with credentials and a live test.
 - `[todo]` Replace `config/classification.yaml` keyword heuristics with authoritative sector registers before any figure is published.
 - `[todo]` Declare operator-owned infrastructure under `self` in `config/reference_hosts.yaml`; until then the active modality demonstrates the method against reference implementations only.

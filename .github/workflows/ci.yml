@@ -15,18 +15,17 @@ jobs:
 
       - name: Install
         run: |
-          pip install -r requirements.txt
-          pip install pytest pysigma
+          pip install -e ".[dev]"
 
-      - name: Unit tests
-        run: python -m pytest tests/ -q
+      - name: Unit tests with coverage floor
+        run: python -m pytest --cov
 
       - name: Sigma pack structure
         run: python tests/validate_sigma.py
 
       # Fails the build if a horizon edit reintroduces component saturation.
       - name: Scoring config validation
-        run: python scoring/hndl_score.py --validate-config
+        run: pqc-score --validate-config
 
       # Fails the build if a host identifier reaches a committed artefact.
       - name: Disclosure lint

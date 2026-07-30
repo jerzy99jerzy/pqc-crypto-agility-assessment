@@ -15,3 +15,9 @@ venv/
 # Real handshake transcripts captured for audit stay out of VCS
 captures/
 *.transcript.txt
+
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+captures/

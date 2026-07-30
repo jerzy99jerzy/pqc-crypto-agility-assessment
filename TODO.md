@@ -76,13 +76,12 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 ## Ready to do in-repo
 
 ### T6 Capability thresholds for GnuTLS, NSS, wolfSSL, LibreSSL
-- Status: `ready` (research + config, no external system)
-- Currently `null` -> resolves to `unknown`, on purpose. Filling them requires
-  reading each library's release notes for the first version shipping a hybrid
-  PQC key-agreement group, not guessing.
-- Acceptance: each threshold set in `config/pqc_capability.yaml` with
-  `provenance: measured` and a `references:` URL, and
-  `test_config_thresholds_declare_provenance` still passing.
+- Status: `done` (partial), sprint 5
+- GnuTLS 3.8.8 and wolfSSL 5.8.0 set with `provenance: measured` and reference
+  URLs. NSS and LibreSSL left `null` -> `unknown`: NSS has shipped hybrid PQ but
+  the exact release cutover was not confirmed against a primary source, and
+  guessing it would be the failure this project exists to avoid.
+- Remaining: verify NSS and LibreSSL cutover versions from their release notes.
 
 ### T7 Replace classification heuristics with authoritative registers
 - Status: `ready` (data sourcing) but see the decision note
@@ -95,20 +94,22 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
   set, and the bias note in the selection manifest updated accordingly.
 
 ### T8 Package the project (pyproject.toml)
-- Status: `ready`
-- Every entry point starts with a `sys.path.insert` hack. A `pyproject.toml`
-  with the package layout and console scripts removes them and makes
-  `pip install -e .` the setup step.
-- Acceptance: imports work without path manipulation, `make` targets call the
-  console scripts, tests still pass.
+- Status: `done`, sprint 5
+- `pyproject.toml` with flat package layout and six `pqc-*` console scripts.
+  `pip install -e ".[dev]"` via `make install`. Test path handling centralised
+  in `tests/conftest.py`; the per-file `sys.path.insert` boilerplate is gone
+  from the test suite. Module-level fallbacks for direct-script execution are
+  kept deliberately, since the collectors can still be run by path.
+- Verified: imports resolve from an unrelated working directory, console
+  scripts run, 82 tests pass.
 
 ### T9 Coverage measurement in CI
-- Status: `ready`
-- 74 tests exist with no coverage number. Add `pytest-cov`, set a floor, fail
-  the build below it. The floor should exclude the subprocess branch of
-  `probe()` and the network transport, which are honestly untestable offline,
-  rather than pretending they are covered.
-- Acceptance: `make verify` prints a coverage figure and CI enforces a floor.
+- Status: `done`, sprint 5
+- `pytest-cov` configured in `pyproject.toml`, `make coverage`, `fail_under=65`
+  enforced in CI. The subprocess branch of the handshake carries
+  `# pragma: no cover` with a reason; the gap to 100% is argparse `main()`
+  wrappers exercised through their callees, not hidden logic. Current total
+  ~69%.
 
 ---
 
@@ -140,3 +141,4 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 - Collection-path tests: retry ladder, limiter, failure modes (sprint 3)
 - Endpoint capability resolver with real semantic version comparison (sprint 3)
 - Handshake output parser split out and tested via synthetic transcripts (sprint 4)
+- Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)

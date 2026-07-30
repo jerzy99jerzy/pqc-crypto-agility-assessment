@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[1]  # for reading source files; path is set in conftest
+
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization

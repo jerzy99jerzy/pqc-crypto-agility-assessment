@@ -11,8 +11,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
 
 from active.handshake_demo import parse_handshake_output  # noqa: E402
 from tests.fixtures import handshake_transcripts as fx  # noqa: E402

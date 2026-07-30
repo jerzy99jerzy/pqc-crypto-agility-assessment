@@ -161,7 +161,7 @@ def probe(host: str, port: int, binary: str, timeout: int, groups: str) -> tuple
         "-brief",
     ]
     started = dt.datetime.now(dt.timezone.utc)
-    try:
+    try:  # pragma: no cover - needs a live OpenSSL 3.5 client, unavailable offline
         proc = subprocess.run(
             cmd, input="Q\n", capture_output=True, text=True, timeout=timeout
         )

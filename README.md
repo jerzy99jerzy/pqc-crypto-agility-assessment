@@ -176,47 +176,195 @@ pqc-crypto-agility-assessment/
 │   ├── methodology.md
 │   └── report.md        #   generated
 ├── tests/
+│   ├── conftest.py           # puts repo root on sys.path once
 │   ├── test_pipeline.py
 │   ├── test_sprint2.py
 │   ├── test_collection.py
 │   ├── test_capability.py
+│   ├── test_handshake.py
 │   ├── validate_sigma.py
 │   └── lint_disclosure.py
+├── pyproject.toml            # installable, console scripts, coverage config
 └── .github/workflows/ci.yml
 ```
 
 The separation between `collectors/` and `active/` is load bearing. Targets are
 never mixed between the two.
 
-## Quickstart
+## Running it
+
+### Prerequisites
+
+- Python 3.11 or newer (`python3 --version`).
+- For the active probe only: OpenSSL 3.5 or newer (`openssl version`). Every
+  other stage runs without it.
+- Network egress to `crt.sh` for passive collection. Nothing else phones home.
+
+### Install
 
 ```bash
-pip install -r requirements.txt
+git clone <your-remote>/pqc-crypto-agility-assessment.git
+cd pqc-crypto-agility-assessment
 
-# 1. selection: pin a public ranking, record how the sample was drawn
-make select RANKING=tranco_2026_07.csv SUFFIX=.pl TOP=10000
-
-# 2. passive collection and scoring
-make collect
-make score
-
-# 3. endpoint capability from a software inventory export
-make capability INVENTORY=defender_software_export.csv
-
-# 4. report, rendered only from committed aggregates
-make report
-
-# 5. active probe: requires OpenSSL >= 3.5, allowlisted hosts only
-openssl version
-make handshake
-
-# everything CI runs: tests, Sigma structure, config validation, disclosure lint
-make verify
+python3 -m venv .venv && source .venv/bin/activate
+make install        # editable install + dev extras (pytest, pytest-cov, pysigma)
 ```
 
-The active probe refuses to run on OpenSSL below 3.5. A negative result from an
-older client would measure the client rather than the server, and that
-misattribution is the most likely failure mode of this class of test.
+`make install` runs `pip install -e ".[dev]"`. That puts the six `pqc-*`
+console scripts on your PATH and removes any need to invoke modules by file
+path. Confirm:
+
+```bash
+pqc-score --help
+make verify         # tests + coverage floor + Sigma structure + config + disclosure lint
+```
+
+If `make verify` is green you have a working install. It runs exactly what CI
+runs, so green here means green there.
+
+### Stage 1 — select the sample (defines your denominator)
+
+A percentage is meaningless without a stated denominator, so selection is a
+first-class step that records itself. Pin a public ranking file (Tranco or
+equivalent, `rank,domain` CSV) by hash, then classify it.
+
+```bash
+pqc-select --ranking tranco_2026_07.csv --suffix .pl --top 10000
+# or: make select RANKING=tranco_2026_07.csv SUFFIX=.pl TOP=10000
+```
+
+Outputs:
+- `config/targets.yaml` — the working target list, git-ignored.
+- `data/aggregates/selection_manifest.json` — committed, hashes and per-sector
+  counts, no domain names. This is what a reviewer challenges instead of the
+  sample itself.
+
+Watch the console for a rule-collision warning. If a domain matched more than
+one sector, the manifest records it; narrow the token in
+`config/classification.yaml`, do not reorder it. Sector keys there must match
+the keys in `scoring/weights.yaml`.
+
+Skip this stage if you are supplying `config/targets.yaml` by hand. Its shape:
+
+```yaml
+sectors:
+  finance:    [example-bank.pl, another-bank.pl]
+  healthcare: [example-clinic.pl]
+```
+
+### Stage 2 — passive collection (third-party estate, public data only)
+
+```bash
+pqc-collect --targets config/targets.yaml -v
+# or: make collect
+```
+
+This queries Certificate Transparency via `crt.sh`, fetches the current leaf
+certificates and parses their dimensions into `data/raw/certs/<host>.json`. The
+raw store is git-ignored, host-level, resumable: rerun it and hosts still fresh
+(7-day TTL) are skipped. It sends zero packets to any target host.
+
+`crt.sh` is a free community service and rate-limits; the client backs off and
+retries. A large target list takes a while. Then aggregate to sector level:
+
+```bash
+pqc-collect --aggregate-only     # or: make aggregate
+```
+
+Produces `data/aggregates/sectors.json`. Sectors with fewer hosts than
+`--min-bucket` (default 5) are dropped, not reported with n=1. The write is
+refused outright if any host identifier would leak into the aggregate.
+
+### Stage 3 — HNDL scoring
+
+```bash
+pqc-score --from-store          # or: make score
+```
+
+Reads the raw store, applies the model in `scoring/weights.yaml`, writes
+`data/aggregates/hndl_sector_scores.json` (sector level). Two diagnostics:
+
+```bash
+pqc-score --validate-config     # saturation, floors, weight and band sanity; make validate
+pqc-score --explain '{"sector":"finance","key_quantum_vulnerable":true,
+  "signature_quantum_vulnerable":true,"valid_beyond_2030_milestone":true,
+  "validity_days":398}'         # full per-component breakdown for one subject
+```
+
+`--validate-config` exits non-zero on an error-severity issue (e.g. a fixed cap
+that saturates the top sectors) and is one of the CI gates. Edit weights and
+horizons in the YAML; nothing is hardcoded in the scorer.
+
+### Stage 4 — endpoint capability (optional, needs an inventory export)
+
+Answers "on how many hosts can the crypto stack even negotiate a hybrid group",
+which decides whether a finding is a policy ticket or an upgrade ticket. Input
+is a software-inventory CSV (Defender `DeviceTvmSoftwareInventory` export or
+similar) with device, name, vendor and version columns.
+
+```bash
+pqc-capability --inventory software_export.csv     # make capability INVENTORY=...
+pqc-capability --check openssl 3.4.1               # resolve a single pair, prints the verdict
+```
+
+Writes `data/aggregates/pqc_capability.json`. Verdicts are `capable`,
+`not_capable`, or `unknown` for libraries whose threshold is not verified.
+Thresholds and their provenance live in `config/pqc_capability.yaml`. Device
+identifiers are counted and discarded, never written.
+
+### Stage 5 — active PQC demonstration (own + reference hosts only)
+
+```bash
+openssl version                 # must be >= 3.5
+pqc-handshake --allowlist config/reference_hosts.yaml    # make handshake
+```
+
+One TLS 1.3 handshake per allowlisted host offering `X25519MLKEM768`, reading
+back the negotiated group. The probe refuses any host not in the allowlist
+before opening a socket, and refuses to run at all below OpenSSL 3.5 (a negative
+result from an old client would measure the client, not the server). Add your
+own infrastructure under `self` and keep the reference implementations under
+`reference`. To keep a raw transcript for audit:
+
+```bash
+pqc-handshake --allowlist config/reference_hosts.yaml --capture-dir captures/
+```
+
+Captures stay out of version control.
+
+### Stage 6 — the report
+
+```bash
+pqc-report                      # or: make report
+```
+
+Renders `docs/report.md` from the committed aggregates only. This generator has
+no access to the raw host store by construction, so it cannot leak host data,
+and it scans its own output for host-like strings before writing. Missing
+inputs degrade to an explicit "no data" section rather than a silent gap; a
+missing selection manifest produces a "no denominator reported" note instead of
+an unbacked percentage.
+
+### One-shot
+
+With `config/targets.yaml` in place:
+
+```bash
+make collect aggregate score report
+```
+
+### Troubleshooting
+
+- `command not found: pqc-score` — the venv is not active, or `make install`
+  was skipped. `source .venv/bin/activate` then `make install`.
+- `crt.sh unreachable after N attempts` — the service is rate-limiting or down.
+  Raise `--rate` (seconds between calls) and rerun; the store resumes.
+- `preflight failed: OpenSSL 3.0.x cannot offer X25519MLKEM768` — expected on
+  older OpenSSL. Only Stage 5 needs 3.5; everything else runs regardless.
+- `DisclosureViolation` on report or aggregate — a host identifier reached
+  output. That is the guard doing its job; do not suppress it, find the leak.
+- Coverage below the floor — logic coverage regressed. `make coverage` shows
+  the missing lines.
 
 ## Status
 
@@ -235,6 +383,12 @@ Sprint 4: handshake output parser split from the subprocess call and tested
 against synthetic transcripts, closing the largest untested surface without a
 3.5 client; optional real-transcript capture for audit; `TODO.md`, `LICENSE`,
 `CONTRIBUTING.md`; disclosure lint widened to the root prose files.
+
+Sprint 5: verified capability thresholds for GnuTLS (3.8.8) and wolfSSL (5.8.0)
+with references, NSS and LibreSSL left `null` rather than guessed; packaged with
+`pyproject.toml` and six `pqc-*` console scripts, `pip install -e .`, path hacks
+removed from tests via `conftest.py`; coverage measured with an honest floor in
+CI; this runbook.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test.

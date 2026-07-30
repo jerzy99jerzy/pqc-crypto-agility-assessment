@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pqc-crypto-agility-assessment"
+version = "0.5.0"
+description = "Repeatable PQC inventory pipeline: passive CT, HNDL scoring, Sigma/KQL detection, capability resolution"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "cryptography>=42.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pysigma>=0.11",
+]
+
+# Console scripts remove the need to invoke modules by path. After
+# `pip install -e .` these are on PATH and the Makefile calls them.
+[project.scripts]
+pqc-select      = "collectors.select_targets:main"
+pqc-collect     = "collectors.passive_cert:main"
+pqc-score       = "scoring.hndl_score:main"
+pqc-capability  = "inventory.pqc_capability:main"
+pqc-handshake   = "active.handshake_demo:main"
+pqc-report      = "reporting.build_report:main"
+
+[tool.setuptools]
+# Flat layout: each top-level directory is an importable package.
+packages = [
+    "collectors",
+    "active",
+    "scoring",
+    "inventory",
+    "reporting",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+branch = true
+source = ["collectors", "scoring", "inventory", "reporting", "active"]
+omit = [
+    "*/__init__.py",
+    # Honest exclusions: these cannot be exercised offline and pretending they
+    # are covered would be the kind of dishonesty the project exists to avoid.
+    #   - the subprocess branch of the handshake (needs an OpenSSL 3.5 client)
+    #   - argparse main() wrappers, tested via their callees not the CLI shell
+]
+
+[tool.coverage.report]
+# Floor is deliberately modest. Measured logic (parsers, scoring, resolver,
+# disclosure guard, store, retry ladder) sits well above it; the gap to 100%
+# is almost entirely argparse main() wrappers, which are exercised through
+# their callees rather than through the CLI shell. Raising the floor by mocking
+# argparse would buy a bigger number and no more real coverage. If the figure
+# drops below this, logic coverage regressed and the build should fail.
+fail_under = 65
+show_missing = true
+# Lines that are unreachable without a network or an external binary are
+# marked in-source with `# pragma: no cover`, so the floor measures logic that
+# is actually testable here rather than being gamed by excluding whole files.
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise SystemExit",
+]
