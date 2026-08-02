@@ -1,6 +1,9 @@
 # Methodology
 
-Version 5.0, 2026-07-29. Sprint 5: verified capability thresholds, packaging,
+Version 6.0, 2026-08-02. Sprint 6: correctness review of the 0.5.0 tree -
+tri-state algorithm identification, version-truncation fix, IPv4 disclosure
+guard, mechanisms document, coverage floor raised to 70.
+Sprint 5: verified capability thresholds, packaging,
 coverage floor, detailed runbook. Sprint 4: handshake parser tests, TODO/LICENSE/CONTRIBUTING.
 Sprint 3: capability resolution, collection-path tests,
 defect log. Sprint 2: selection manifest, exposure-cap fix, executable
@@ -126,6 +129,14 @@ rerun is cheap:
 - atomic writes via tmpfile plus `os.replace`, so an interrupted run leaves no torn records
 - corrupt or partially written files are treated as absent and rewritten
 
+The vulnerability flags on a parsed certificate are tri-state, not boolean:
+`True` for a Shor-breakable family, `False` for a recognised PQC algorithm
+matched by OID, `None` where the algorithm could not be identified. The
+distinction is load bearing rather than pedantic. `False` reads downstream as
+*measured post-quantum*, so an unidentified algorithm resolved to `False` would
+convert the parser's own ignorance into evidence of PQC adoption. That was a
+real defect, not a hypothetical one; see section 9.1.
+
 Sources considered and deferred:
 
 - **Censys / Shodan** `[deferred]`. Both would add data the CT logs do not
@@ -232,7 +243,7 @@ structural guard used by every writer, and `tests/lint_disclosure.py` runs the
 same guard from the outside over committed files, which catches hand-edited
 JSON that never passed through a writer.
 
-Three decisions inside the guard are worth recording, because each one is a
+Four decisions inside the guard are worth recording, because each one is a
 trade-off rather than an obvious choice.
 
 Certificate SHA-256 fingerprints are treated as host identifiers. A fingerprint
@@ -255,6 +266,16 @@ hidden inside backticks in a markdown file would pass the prose scan. Structural
 JSON output has no such exemption, and that is where collected data actually
 lands.
 
+IPv4 literals are matched by a separate pattern, added in sprint 6. The
+hostname pattern requires an alphabetic final label, so a dotted quad passed
+through the guard untouched for five sprints: an IP is host identity as surely
+as a name is, and the guard could not see one. Octets are range-checked to
+0-255 so that four-component version strings with a large final part
+(`3.5.0.2024`) are not false-positived. The residual collision - a version
+string that is also a valid dotted quad, such as `1.1.1.1` - is accepted,
+consistent with the rest of the guard: a false positive costs a rename, a false
+negative costs the premise of the project.
+
 ## 8. Endpoint capability resolution
 
 Two questions get conflated in most PQC readiness material. "Should we adopt
@@ -269,7 +290,15 @@ Version comparison is component-wise, not float-based. `3.10.1` is above
 `3.5.0`; treating versions as decimals inverts that and misclassifies precisely
 the hosts that have already been upgraded. OpenSSL letter releases (`1.1.1w`)
 and distribution suffixes (`3.5.0+deb12u2`) parse into ordered components rather
-than failing.
+than failing. Trailing numeric zeros are insignificant: sprint 6 found that
+`3.5` compared below a `3.5.0` threshold, so an export that truncates a zero
+resolved an upgraded host as `not_capable` - the same class of misclassification
+the component-wise comparison exists to prevent, reintroduced through the
+length rule. A non-zero tail still decides, so `3.5` stays below `3.5.1`.
+Pre-release suffixes remain a known limitation: `3.5.0-beta1` sorts above
+`3.5.0`, because the tokenizer does not distinguish the semver pre-release
+marker from build metadata. The verdict errs toward `capable` and the row stays
+visible for review, which is stated here rather than half-fixed in code.
 
 Thresholds live in `config/pqc_capability.yaml` and carry provenance. OpenSSL
 3.5.0, GnuTLS 3.8.8 and wolfSSL 5.8.0 are `measured` with reference URLs to
@@ -295,6 +324,40 @@ the payload before it is written.
 ## 9. Defects found by testing
 
 Recorded because a repository that only shows its successes is a brochure.
+
+### 9.1 Found by review of the 0.5.0 tree (sprint 6)
+
+All three produced a plausible wrong number rather than a crash, which is the
+failure mode that matters for a measurement tool: nothing alerts, the output
+looks reasonable, and the error survives into a report. Each now has a
+regression test that fails against the 0.5.0 code.
+
+`certparse` reported `quantum_vulnerable = False` for any key or signature OID
+it could not identify. Downstream, `False` is indistinguishable from a measured
+PQC algorithm: the aggregator counts `is False` as a PQC indicator, so every
+algorithm the parser could not name became evidence of post-quantum adoption
+while the vulnerable-key count shrank. The direction is what makes this the
+worst of the three - the error flattered the estate under measurement, which is
+exactly the bias this project exists to avoid. The flags are now tri-state
+(`True` / `False` / `None`), and unknown stays unknown: it prices as 0.5 in
+scoring with provenance `unknown` and appears as its own bucket in the
+aggregate rather than being folded into either verdict.
+
+`compare_versions("3.5", "3.5.0")` returned -1, so an inventory export that
+truncates a trailing zero resolved an already-upgraded host as `not_capable`.
+The length rule reintroduced precisely the misclassification that the
+component-wise comparison exists to prevent. Notable second-order finding: the
+test suite had frozen the defect as an assertion, with a comment explaining the
+wrong behaviour as though it were the contract. A test can document a bug as
+confidently as it documents a fix.
+
+The disclosure guard could not see IPv4 literals. `HOSTNAME_RE` requires an
+alphabetic final label, so a dotted quad passed through the structural guard
+into anything destined for `data/aggregates/`. The guard had been described as
+enforcement of the scope statement for five sprints while missing a whole class
+of host identifier.
+
+### 9.2 Earlier sprints
 
 `RateLimiter._last` defaulted to `0.0`, so the first call measured its elapsed
 time against the epoch of `time.monotonic()`. On Linux that epoch is system

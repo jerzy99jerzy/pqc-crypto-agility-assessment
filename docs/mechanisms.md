@@ -1,0 +1,256 @@
+# Mechanisms
+
+How the pipeline works, mechanism by mechanism. `README.md` states the thesis and
+the scope; `methodology.md` covers the epistemic labels and the reasoning behind
+the design; this document describes what the code actually does.
+
+Every mechanism below is implemented and exercised by the test suite. Where a
+mechanism cannot be verified in an offline environment, that is stated rather
+than glossed.
+
+---
+
+## 1. Selection: establishing a denominator
+
+`collectors/select_targets.py`
+
+A percentage without a stated denominator is decoration, so selection is an
+artefact rather than a step. One run produces two outputs: a working target list,
+which is git-ignored, and a **selection manifest**, which is committed.
+
+The manifest records the input ranking's file name and SHA-256, the filters
+applied, the SHA-256 of the classification ruleset, per-sector counts, and the
+number of domains that matched rules from more than one sector. It contains no
+domain names. A reader can therefore challenge the sampling without being handed
+the sample.
+
+Classification is substring-based and therefore collides: a token like `gaz`
+matches both an energy company and a newspaper. First match wins, but every
+match is collected, so collisions are **counted and published** instead of being
+resolved silently. A ruleset that hides its collisions produces a denominator
+nobody can audit.
+
+The manifest also carries the sampling bias in writing: resolver-traffic
+rankings overrepresent consumer web properties and underrepresent APIs and
+machine-to-machine endpoints, which is where long confidentiality horizons
+concentrate. The method therefore undercounts the highest-HNDL assets, and that
+limitation travels with the numbers rather than being left for the reader to
+discover.
+
+## 2. Passive collection: certificate dimensions from public CT
+
+`collectors/crtsh.py`, `collectors/certparse.py`, `collectors/passive_cert.py`
+
+Certificate Transparency logs are a public, append-only record. Reading them
+generates zero traffic toward the domain owner's infrastructure.
+
+Two API surfaces are used: log-entry metadata, and the certificate itself. The
+metadata surface does **not** expose key or signature algorithm. Reporting
+issuer and expiry from metadata while implying the key algorithm was measured is
+the most common shortcut in this space; here the leaf is fetched and parsed, so
+the algorithm is genuinely measured.
+
+Parsing yields a flat record: subject, issuer, validity window, key algorithm and
+parameter, signature algorithm and OID, and whether validity extends past the
+2030-12-31 milestone.
+
+The vulnerability flags are **tri-state**, and this matters more than it looks:
+
+| value | meaning |
+|---|---|
+| `True` | a Shor-breakable family (RSA, EC, DSA, EdDSA, X25519/X448) |
+| `False` | a recognised PQC algorithm (ML-KEM, ML-DSA, SLH-DSA by OID) |
+| `None` | the algorithm could not be identified |
+
+An unidentified algorithm must never resolve to `False`. Downstream, `False`
+reads as *measured post-quantum*: the aggregator counts it as a PQC indicator
+and the vulnerable-key count shrinks. A parser that guesses `False` therefore
+converts its own ignorance into evidence of PQC adoption, in the direction that
+flatters the estate. Unknown stays unknown, prices as 0.5 in scoring with
+provenance `unknown`, and appears as a visible bucket in the aggregate.
+
+The parser never raises. One malformed certificate records a `parse_error` and
+the batch continues, because a collection run that dies on the awkward input
+tells you nothing about the other thousand hosts.
+
+## 3. Store: resumable, atomic, host-scoped
+
+`collectors/store.py`
+
+One JSON file per host, so a rerun resumes at host granularity. Writes go
+through a temporary file, `fsync`, then `os.replace`, which is atomic within a
+filesystem on POSIX: an interrupted run never leaves a torn record. A file that
+fails to parse is treated as absent and rewritten rather than crashing the run.
+
+Freshness is TTL-based, so reruns do not re-hit the upstream API for data
+already held. The store lives under `data/raw/`, which is git-ignored. Only
+sector-level aggregates are ever committed.
+
+Upstream requests are rate-limited with a minimum interval plus jitter, and
+retried with exponential backoff on 429 and 5xx. crt.sh is a free community
+service; the default rate is deliberately low.
+
+## 4. Aggregation and the disclosure guard
+
+`collectors/passive_cert.py`, `collectors/disclosure.py`
+
+Aggregation collapses the host-level store into sector counts: key-algorithm
+distribution, signature algorithms, quantum-vulnerable counts, validity buckets,
+and PQC indicators. A sector holding fewer than the minimum number of hosts is
+**suppressed entirely** rather than reported with n=1, because a bucket of one
+is a named organisation wearing a sector label.
+
+The scope statement is worth exactly as much as its enforcement, so enforcement
+is in code and fails closed. Before an aggregate is written, it passes two
+checks:
+
+- **Structural.** A recursive walk rejects keys known to carry host identity
+  (`host`, `subject_cn`, `san_dns`, device columns from endpoint exports, and
+  so on) and rejects strings that look like hostnames or IPv4 literals. Both
+  patterns are needed: a hostname regex requires an alphabetic final label, so
+  a dotted quad passes straight through one written only for names.
+- **Statistical.** Bucket sizes are re-checked against the declared minimum at
+  write time, independently of the aggregation logic that produced them.
+
+A prose variant scans committed markdown, minus hosts declared as `self` or
+`reference` in the allowlist, since naming a positive control is part of the
+method. The prose scan strips fenced blocks and inline code first, because a
+guard that flags every dotted identifier in the documentation gets switched off
+within a week; the structural guard, which has no such exemption, is what runs
+over collected data.
+
+`tests/lint_disclosure.py` runs the same guards from the outside over files
+already on disk, in CI. The writers can be bypassed by hand-editing a JSON file;
+the external lint cannot.
+
+## 5. HNDL scoring
+
+`scoring/hndl_score.py`, `scoring/weights.yaml`
+
+The model has no access to data classification, so it does not pretend to. It
+combines measured certificate dimensions with one named assumption and projects
+the result onto the regulatory milestone. Every weight, horizon, threshold and
+band lives in `weights.yaml`; a weight hardcoded in the module is a bug, and a
+test asserts as much.
+
+Five components: key vulnerability, signature vulnerability, horizon pressure,
+whether the certificate outlives the milestone, and rotation agility inferred
+from validity length. Each is emitted with its own value, weight, provenance and
+contribution, so the composite can be argued with rather than believed. A
+composite inherits the weakest label of its inputs.
+
+**Horizon pressure is the load-bearing assumption.** Sector confidentiality
+horizons are analyst estimates derived from statutory retention and secrecy
+expectations, not from any observed data inventory. Change them and the ranking
+changes.
+
+The saturation cap for that component defaults to `derived`: computed from the
+longest configured horizon, so no configured sector can clamp, and the cap
+cannot drift out of sync when a horizon is edited. It also re-normalises as the
+milestone approaches, which is correct — the same 30-year horizon buys more
+exposure every year that passes. The alternative, a fixed cap, is still
+accepted, because an analyst may deliberately want saturation.
+
+`--validate-config` reports configuration problems by severity, and the
+distinction is deliberate. Top-end saturation collapses the sectors the model
+exists to rank, so it is an **error** and fails CI. Bottom-end flooring is the
+expected consequence of a horizon shorter than the distance to the milestone —
+those sectors carry no HNDL exposure at all — so it is a **warning** that must be
+stated rather than a defect to fix.
+
+## 6. Active demonstration
+
+`active/handshake_demo.py`
+
+One TLS 1.3 handshake per target, offering the hybrid group X25519MLKEM768
+(IANA 0x11EC, RFC 9794), reading back the group the server negotiated.
+
+It is not a scanner: no port enumeration, no discovery, no rate-multiplied
+sweep. Targets must appear in an allowlist under `self` (infrastructure the
+operator owns and is authorised to test) or `reference` (public implementations
+serving internet-scale traffic, used as positive controls). Anything else is
+refused before a socket is opened, and the scope gate runs **before** the
+capability check, so a refusal never depends on which OpenSSL happens to be
+installed.
+
+The probe requires OpenSSL 3.5 or later and refuses to run on anything older.
+The most likely failure mode of this class of test is misattributing a *client*
+limitation to the server, and an old client would produce a confident, wrong
+"no PQC support" result.
+
+Output parsing is split into a pure function so it can be tested against
+captured transcripts without a live OpenSSL 3.5 client. An untested parser that
+only ever sees failure output is a parser that will misread the one result that
+matters. The test fixtures are hand-written approximations and are labelled as
+such; they are never evidence about any host.
+
+HelloRetryRequest is *inferred* from the client writing ClientHello twice, and
+is labelled `inference` in the record rather than presented as measured.
+
+## 7. Endpoint capability resolution
+
+`inventory/pqc_capability.py`, `config/pqc_capability.yaml`
+
+This answers the question that gates a migration plan: on how many hosts is the
+crypto stack capable of a hybrid key exchange at all. A host below the threshold
+is a package-upgrade ticket, not a crypto-policy ticket, and separating those
+two populations is most of the work.
+
+It exists because KQL cannot compare semantic versions safely — `3.10` is not
+less than `3.5` as a float, and pretending otherwise misclassifies every host
+that has already been upgraded. Versions are tokenised into numeric and
+alphabetic runs compared within their own type, which handles `3.10.1`,
+OpenSSL letter releases like `1.1.1w`, and distribution suffixes like
+`3.5.0+deb12u2`. Trailing numeric zeros are insignificant, so an export that
+writes `3.5` against a `3.5.0` threshold resolves as capable rather than being
+silently downgraded.
+
+Verdicts are `capable`, `not_capable`, or `unknown`. **Unknown stays unknown.**
+A library with no verified threshold, or a version string that cannot be parsed,
+is reported as unknown rather than folded into `not_capable`, because a wrong
+threshold reclassifies an entire population and nobody rechecks a number that
+already looks plausible. Thresholds carry their own provenance, and a library
+versioned by commit rather than by release string is unknown by design.
+
+Capability is a precondition, not behaviour: a host running a capable library
+may still negotiate a classical group because of policy, middleboxes, or a peer
+that offers nothing better. That is what the detection layer is for.
+
+## 8. Detection content
+
+`detection/sigma/`, `detection/kql/`
+
+Sigma rules and KQL queries that express PQC posture in the language a SOC
+already runs: TLS sessions negotiating classical-only key exchange, sessions
+where a hybrid group *was* negotiated (the burndown denominator), certificate
+inventory extending beyond the milestone, and crypto-library capability across
+endpoints. `tests/validate_sigma.py` validates the pack structurally in CI, so a
+malformed rule cannot be merged.
+
+## 9. Reporting
+
+`reporting/build_report.py`
+
+The report is built only from committed aggregates. It has no access to the raw
+host-level store by construction rather than by discipline: a generator that
+cannot read host data cannot leak host data.
+
+Missing inputs render as an explicit "not present" statement rather than a
+silently omitted section, so the gaps in a run are visible in its output. Model
+configuration warnings are reproduced in the report instead of being filtered
+out. Before writing, the rendered markdown is scanned by the prose guard, and
+the build fails on any host-like token that is not a declared reference host.
+
+## 10. Provenance, end to end
+
+Four labels, carried in the emitted records rather than only in prose:
+
+`[measured]` read from a certificate, handshake or log without interpretation ·
+`[inference]` derived from observable proxies · `[assumption]` chosen by the
+analyst, defensible but not observed · `[speculation]` explicitly uncertain and
+carried through rather than resolved.
+
+Q-Day is the worked example of the last category: no arrival estimate for a
+cryptographically relevant quantum computer is used anywhere in the arithmetic.
+The model is anchored to a regulatory milestone, which is an observable fact,
+rather than to a forecast, which is not.

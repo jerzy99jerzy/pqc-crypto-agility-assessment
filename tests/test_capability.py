@@ -38,7 +38,14 @@ def cfg():
     ("3.4.9", "3.5.0", -1),
     ("3.10.1", "3.5.0", 1),      # the float-comparison trap
     ("3.9", "3.10", -1),
-    ("3.5", "3.5.0", -1),        # shorter prefix sorts lower
+    # Trailing numeric zeros are insignificant. Inventory exports truncate
+    # them, and treating "3.5" as below a "3.5.0" threshold reclassified every
+    # truncated-but-upgraded host as not_capable. Regression guard for F2.
+    ("3.5", "3.5.0", 0),
+    ("3.5.0", "3.5", 0),
+    ("3.5.0.0", "3.5", 0),
+    ("3.5", "3.5.1", -1),        # a non-zero tail still decides
+    ("3.5.1", "3.5", 1),
     ("1.1.1w", "3.5.0", -1),
     ("1.1.1w", "1.1.1a", 1),     # OpenSSL letter releases order lexically
     ("3.5.0-beta1", "3.5.0", 1),
@@ -46,6 +53,16 @@ def cfg():
 ])
 def test_version_comparison(a, b, expected):
     assert compare_versions(a, b) == expected
+
+
+def test_truncated_version_resolves_capable(cfg):
+    """F2 regression at the verdict level, not just the comparator.
+
+    The threshold is "3.5.0". An export that writes "3.5" describes the same
+    release, and must not be reported as not_capable.
+    """
+    assert resolve("openssl", "3.5", cfg)["verdict"] == "capable"
+    assert resolve("openssl", "3.4", cfg)["verdict"] == "not_capable"
 
 
 @pytest.mark.parametrize("bad", ["", "unknown", "latest", "vendored", None])

@@ -39,6 +39,18 @@ HOSTNAME_RE = re.compile(
     r"\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.){1,}[a-z]{2,24}\b", re.IGNORECASE
 )
 
+# IPv4 literals. HOSTNAME_RE cannot match them - its final label must be
+# alphabetic - so without this pattern a dotted quad walks straight through
+# the guard, and an IP is host identity as surely as a hostname is. Octets are
+# range-checked to 0-255 so that four-part version strings with a large
+# component (e.g. 3.5.0.2024) do not false-positive; the residual collision
+# (a version that is also a valid quad, like 1.1.1.1) is accepted as the cost
+# of a guard that is deliberately blunt.
+IPV4_RE = re.compile(
+    r"\b(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}"
+    r"(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\b"
+)
+
 # File extensions that cannot be confused with a top-level domain, so a token
 # ending in one is a filename rather than a host.
 #
@@ -97,6 +109,10 @@ def assert_no_host_identifiers(payload: Any, path: str = "$") -> None:
                 raise DisclosureViolation(
                     f"{path}: string looks like a hostname: {match!r}"
                 )
+        for match in IPV4_RE.findall(payload):
+            raise DisclosureViolation(
+                f"{path}: string contains an IPv4 literal: {match!r}"
+            )
 
 
 def assert_bucket_sizes(buckets: dict[str, int], minimum: int) -> None:
@@ -134,4 +150,7 @@ def scan_text(
     """
     if strip_code:
         text = CODE_SPAN_RE.sub(" ", CODE_FENCE_RE.sub(" ", text))
-    return [m for m in HOSTNAME_RE.findall(text) if not _is_allowed(m, extra_allowed)]
+    found = [m for m in HOSTNAME_RE.findall(text) if not _is_allowed(m, extra_allowed)]
+    found += [m for m in IPV4_RE.findall(text)
+              if not (extra_allowed and m in extra_allowed)]
+    return found

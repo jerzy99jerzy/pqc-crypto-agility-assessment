@@ -60,6 +60,88 @@ in `docs/methodology.md`. Short version: a single handshake and an nmap run
 generate comparable traffic and carry opposite optics, the marginal signal was
 near zero, and the downside was asymmetric.
 
+## Architecture
+
+The diagram is the pipeline as built: solid arrows are data flow, dashed arrows
+are enforcement. Everything above `data/raw/` is host-level and never committed;
+only sector aggregates and the selection manifest cross into the committed zone.
+The disclosure guard sits on that boundary and fails closed.
+
+```mermaid
+flowchart TB
+    subgraph inputs["Inputs (operator-supplied)"]
+        rank["Public ranking\n(Tranco, pinned + hashed)"]
+        inv["Software inventory export\n(optional)"]
+        allow["Allowlist: self + reference hosts"]
+    end
+
+    subgraph modA["Modality A — passive, third-party estate"]
+        sel["select_targets.py\nclassify by sector"]
+        crt["crtsh.py\npublic CT, rate-limited + retried"]
+        cp["certparse.py\nkey / sig / validity\nvuln flags: True / False / None"]
+        store[("store.py\ndata/raw/ — host-level\natomic, TTL, resumable\ngit-ignored")]
+        agg["passive_cert.py\naggregate by sector\nmin bucket size"]
+    end
+
+    subgraph modB["Modality B — active, own + reference only"]
+        hs["handshake_demo.py\none TLS1.3 X25519MLKEM768\nOpenSSL >= 3.5"]
+    end
+
+    subgraph cap["Capability"]
+        pqc["pqc_capability.py\nsemantic version vs threshold\ncapable / not_capable / unknown"]
+    end
+
+    subgraph scoring["Scoring"]
+        hndl["hndl_score.py\nmeasured dims x sector horizon\nweights.yaml, --validate-config"]
+    end
+
+    guard{{"disclosure.py\nkeys · hostnames · IPv4 · fingerprints\nFAIL CLOSED"}}
+
+    subgraph committed["Committed artefacts"]
+        man["selection manifest\n(counts, hashes, no names)"]
+        secagg["sector aggregates\ndata/aggregates/"]
+        scores["sector scores"]
+        report["build_report.py\ndocs/report.md"]
+        detect["detection/\nSigma + KQL"]
+    end
+
+    rank --> sel --> crt --> cp --> store --> agg
+    sel -.-> man
+    inv --> pqc
+    allow --> hs
+
+    agg --> hndl
+    pqc --> hndl
+    agg --> secagg
+    hndl --> scores
+    hs --> report
+    secagg --> report
+    scores --> report
+    pqc --> report
+
+    man -.-> guard
+    secagg -.-> guard
+    scores -.-> guard
+    report -.-> guard
+
+    detect -. "SOC-native output,\nno pipeline dependency" .-> report
+
+    classDef raw fill:#2a2a2a,stroke:#888,color:#eee;
+    classDef safe fill:#14342b,stroke:#3fae7c,color:#eee;
+    classDef gate fill:#3a1414,stroke:#c0564a,color:#fff;
+    class store raw;
+    class man,secagg,scores,report,detect safe;
+    class guard gate;
+```
+
+Reading it in one line: a pinned public ranking defines the denominator, passive
+collection reads public CT into a host-level store that never leaves the
+machine, aggregation collapses it to sectors, scoring folds in the one named
+assumption (sector horizon), and nothing reaches the committed zone without
+clearing the disclosure guard. Modality B and the capability resolver feed the
+same report along independent paths; the detection pack stands alone, consumed
+by a SOC rather than by this pipeline.
+
 ## Provenance convention
 
 Three labels, used in code, in output records and in the report:
@@ -132,7 +214,7 @@ the first inconvenient deadline.
 - Active handshakes: own infrastructure and public reference implementations only, enforced by allowlist in `active/handshake_demo.py`, which refuses an undeclared target before opening a socket. One handshake per target.
 - A single handshake to a documented reference implementation is not reconnaissance. It is the same connection a browser makes, made once, on purpose, with the result written down.
 - Aggregation by sector, minimum bucket size enforced by `collectors/disclosure.py`. Buckets below the threshold are dropped, not reported with n=1.
-- No organisation is named next to a vulnerability finding. `assert_no_host_identifiers` rejects forbidden keys, hostname-shaped strings and certificate fingerprints in anything written to `data/aggregates/` or `docs/`.
+- No organisation is named next to a vulnerability finding. `assert_no_host_identifiers` rejects forbidden keys, hostname-shaped strings, IPv4 literals and certificate fingerprints in anything written to `data/aggregates/` or `docs/`.
 - Host-level raw data stays in `data/raw/`, which is git-ignored. Only sector aggregates are committed.
 - Target lists are not committed. `config/targets.yaml` is git-ignored, and `tests/lint_disclosure.py` fails the build if it ever becomes tracked.
 
@@ -174,6 +256,7 @@ pqc-crypto-agility-assessment/
 │   └── aggregates/      #   sector level, committed
 ├── docs/
 │   ├── methodology.md
+│   ├── mechanisms.md    #   how each mechanism works
 │   └── report.md        #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
@@ -182,6 +265,7 @@ pqc-crypto-agility-assessment/
 │   ├── test_collection.py
 │   ├── test_capability.py
 │   ├── test_handshake.py
+│   ├── test_sprint6.py
 │   ├── validate_sigma.py
 │   └── lint_disclosure.py
 ├── pyproject.toml            # installable, console scripts, coverage config
@@ -389,6 +473,16 @@ with references, NSS and LibreSSL left `null` rather than guessed; packaged with
 `pyproject.toml` and six `pqc-*` console scripts, `pip install -e .`, path hacks
 removed from tests via `conftest.py`; coverage measured with an honest floor in
 CI; this runbook.
+
+Sprint 6: correctness review of the shipped tree, which found three defects that
+produced plausible wrong numbers rather than failures. Unidentified key and
+signature algorithms were reported as post-quantum rather than unknown, which
+inflated PQC-adoption counts in the direction that flatters the estate; the
+flags are now tri-state. A truncated version string (`3.5` against a `3.5.0`
+threshold) resolved an upgraded host as `not_capable`. The disclosure guard
+could not see IPv4 literals at all. Each fix carries a regression test that
+fails against the previous release. Coverage floor raised 65 to 70;
+`docs/mechanisms.md` added.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test.

@@ -87,15 +87,36 @@ def parse_version(raw: str) -> tuple | None:
 
 
 def compare_versions(a: str, b: str) -> int | None:
-    """Return -1, 0, 1 for a<b, a==b, a>b. None if either side is unparseable."""
+    """Return -1, 0, 1 for a<b, a==b, a>b. None if either side is unparseable.
+
+    Trailing numeric zeros are insignificant: inventory exports routinely
+    truncate them, and `3.5` refused against a `3.5.0` threshold silently
+    reclassifies every truncated-but-upgraded host as not_capable. So `3.5`,
+    `3.5.0` and `3.5.0.0` compare equal.
+
+    Known limitation, stated rather than half-fixed: pre-release suffixes sort
+    ABOVE the release they precede (`3.5.0-beta1` > `3.5.0`), because the
+    tokenizer drops the `-` / `+` distinction that semver uses to separate
+    pre-release from build metadata. Distribution suffixes (`3.5.0+deb12u2`)
+    ordering above the base release is the desired behaviour and comes from the
+    same rule. Pre-release strings are rare in production inventory exports; if
+    one appears, the verdict errs toward capable and the row remains visible
+    for review rather than being silently dropped.
+    """
     pa, pb = parse_version(a), parse_version(b)
     if pa is None or pb is None:
         return None
-    # Compare component-wise; a shorter prefix is lower, so 3.5 < 3.5.1
+    # Compare component-wise over the common prefix.
     for x, y in zip(pa, pb):
         if x != y:
             return -1 if x < y else 1
     if len(pa) == len(pb):
+        return 0
+    # Prefixes equal: the tail decides. A tail of pure numeric zeros is the
+    # same version written longer; anything else makes the longer side greater.
+    longer = pa if len(pa) > len(pb) else pb
+    tail = longer[min(len(pa), len(pb)):]
+    if all(part == (0, 0) for part in tail):
         return 0
     return -1 if len(pa) < len(pb) else 1
 

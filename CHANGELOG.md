@@ -3,6 +3,45 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.6.0] - 2026-08-02
+
+Correctness sprint. Three defects found by review of the 0.5.0 tree, each of
+which produced a plausible wrong number rather than a crash - the failure mode
+that matters most for a measurement tool. All three now have regression tests
+that fail against the 0.5.0 code.
+
+### Fixed
+- **Unidentified algorithms no longer report as post-quantum.** `certparse`
+  returned `quantum_vulnerable=False` for any key or signature OID it could not
+  identify, which downstream is indistinguishable from a measured PQC
+  algorithm: the aggregator counted it as a PQC indicator and the
+  vulnerable-key count shrank. The flags are now tri-state
+  (`True` / `False` / `None`), so unknown stays unknown, prices as 0.5 in
+  scoring with provenance `unknown`, and appears as its own bucket in the
+  aggregate. Silent inflation of PQC adoption in the direction that flatters
+  the estate.
+- **Truncated version strings resolve correctly.** `compare_versions("3.5",
+  "3.5.0")` returned -1, so an inventory export that truncates a trailing zero
+  resolved an upgraded host as `not_capable`. Trailing numeric zeros are now
+  insignificant; a non-zero tail still decides. The pre-release ordering
+  limitation is documented in the function rather than half-fixed.
+- **The disclosure guard now sees IPv4 literals.** `HOSTNAME_RE` requires an
+  alphabetic final label, so a dotted quad passed through the structural guard
+  and could reach a committed aggregate. IPv4 detection added to both the
+  structural guard and the prose scan, with octet range-checking so version
+  strings are not false-positived.
+
+### Added
+- `docs/mechanisms.md`: how each mechanism works, for readers who want the
+  implementation rather than the thesis or the epistemics.
+- `tests/test_sprint6.py`: regression guards for the three fixes, plus coverage
+  of report rendering and store-level scoring.
+
+### Changed
+- Coverage floor raised 65 -> 70 (measured: 73.85%, 108 tests). The floor is a
+  ratchet; the remaining margin is headroom against refactors, not slack.
+- Removed the unused `CLASSICAL_VULNERABLE` constant from `certparse`.
+
 ## [0.5.0] - 2026-07-30
 
 First tagged release. Repeatable PQC crypto-agility assessment: passive
@@ -37,3 +76,5 @@ disclosure gates enforced in CI.
   and reference infrastructure.
 
 [0.5.0]: https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/releases/tag/v0.5.0
+
+[0.6.0]: https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/releases/tag/v0.6.0

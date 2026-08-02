@@ -105,7 +105,7 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 
 ### T9 Coverage measurement in CI
 - Status: `done`, sprint 5
-- `pytest-cov` configured in `pyproject.toml`, `make coverage`, `fail_under=65`
+- `pytest-cov` configured in `pyproject.toml`, `make coverage`, `fail_under=70` (raised from 65 in sprint 6)
   enforced in CI. The subprocess branch of the handshake carries
   `# pragma: no cover` with a reason; the gap to 100% is argparse `main()`
   wrappers exercised through their callees, not hidden logic. Current total
@@ -142,3 +142,4 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 - Endpoint capability resolver with real semantic version comparison (sprint 3)
 - Handshake output parser split out and tested via synthetic transcripts (sprint 4)
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
+- Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/mechanisms.md`, coverage floor 65 -> 70 (sprint 6)

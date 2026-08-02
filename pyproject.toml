@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pqc-crypto-agility-assessment"
-version = "0.5.0"
+version = "0.6.0"
 description = "Repeatable PQC inventory pipeline: passive CT, HNDL scoring, Sigma/KQL detection, capability resolution"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -63,7 +63,11 @@ omit = [
 # their callees rather than through the CLI shell. Raising the floor by mocking
 # argparse would buy a bigger number and no more real coverage. If the figure
 # drops below this, logic coverage regressed and the build should fail.
-fail_under = 65
+#
+# Ratchet: raised 65 -> 70 in 0.6.0, once sprint-6 tests took measured coverage
+# to 73.85%. The remaining margin is headroom against refactors, not slack to
+# spend.
+fail_under = 70
 show_missing = true
 # Lines that are unreachable without a network or an external binary are
 # marked in-source with `# pragma: no cover`, so the floor measures logic that

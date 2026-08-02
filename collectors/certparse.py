@@ -55,9 +55,7 @@ PQC_KEM_OIDS: dict[str, str] = {
     "2.16.840.1.101.3.4.4.3": "ML-KEM-1024",
 }
 
-# Quantum-vulnerable public-key families (Shor-breakable).
-CLASSICAL_VULNERABLE = {"RSA", "EC", "DSA", "Ed25519", "Ed448", "X25519", "X448"}
-
+# Milestone anchor for the "valid beyond 2030" dimension.
 MILESTONE_2030 = dt.date(2030, 12, 31)
 
 
@@ -87,8 +85,20 @@ class CertRecord:
         return asdict(self)
 
 
-def _key_dimensions(cert: x509.Certificate) -> tuple[str, str | int | None, bool]:
-    """Return (algorithm, parameter, quantum_vulnerable)."""
+def _key_dimensions(cert: x509.Certificate) -> tuple[str, str | int | None, bool | None]:
+    """Return (algorithm, parameter, quantum_vulnerable).
+
+    quantum_vulnerable is tri-state on purpose:
+        True   the family is Shor-breakable                       [measured]
+        False  the key is a recognised PQC algorithm              [measured]
+        None   the algorithm could not be identified              [unknown]
+
+    An unidentified key must resolve to None, never to False. False here reads
+    downstream as "measured post-quantum": the aggregator counts it as a PQC
+    indicator and the vulnerable-key count silently shrinks. Unknown stays
+    unknown; scoring already prices None as 0.5 and the aggregate shows a
+    visible "None" bucket instead of quietly inflating PQC adoption.
+    """
     spki_oid = cert.public_key_algorithm_oid.dotted_string
     if spki_oid in PQC_KEM_OIDS:
         return PQC_KEM_OIDS[spki_oid], None, False
@@ -97,8 +107,8 @@ def _key_dimensions(cert: x509.Certificate) -> tuple[str, str | int | None, bool
 
     try:
         pub = cert.public_key()
-    except Exception:  # unsupported / PQC key not implemented by the backend
-        return f"OID:{spki_oid}", None, False
+    except Exception:  # unsupported by the backend and not a known PQC OID
+        return f"OID:{spki_oid}", None, None
 
     if isinstance(pub, rsa.RSAPublicKey):
         return "RSA", pub.key_size, True
@@ -112,16 +122,19 @@ def _key_dimensions(cert: x509.Certificate) -> tuple[str, str | int | None, bool
         return "Ed448", 448, True
     if isinstance(pub, (x25519.X25519PublicKey, x448.X448PublicKey)):
         return type(pub).__name__.replace("PublicKey", ""), None, True
-    return f"OID:{spki_oid}", None, False
+    return f"OID:{spki_oid}", None, None
 
 
-def _signature_dimensions(cert: x509.Certificate) -> tuple[str, str, bool]:
+def _signature_dimensions(cert: x509.Certificate) -> tuple[str, str, bool | None]:
+    """Same tri-state contract as _key_dimensions: a signature OID the library
+    cannot even name is unknown, not vulnerable. Marking it True would be a
+    verdict fabricated from ignorance; None keeps it visible as unverified."""
     oid = cert.signature_algorithm_oid.dotted_string
     if oid in PQC_SIG_OIDS:
         return PQC_SIG_OIDS[oid], oid, False
     name = cert.signature_algorithm_oid._name  # noqa: SLF001 - stable public-ish map
     if name in (None, "Unknown OID"):
-        name = f"OID:{oid}"
+        return f"OID:{oid}", oid, None
     return name, oid, True
 
 
