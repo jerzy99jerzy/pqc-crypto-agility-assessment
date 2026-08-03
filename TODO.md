@@ -76,12 +76,14 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 ## Ready to do in-repo
 
 ### T6 Capability thresholds for GnuTLS, NSS, wolfSSL, LibreSSL
-- Status: `done` (partial), sprint 5
-- GnuTLS 3.8.8 and wolfSSL 5.8.0 set with `provenance: measured` and reference
-  URLs. NSS and LibreSSL left `null` -> `unknown`: NSS has shipped hybrid PQ but
-  the exact release cutover was not confirmed against a primary source, and
-  guessing it would be the failure this project exists to avoid.
-- Remaining: verify NSS and LibreSSL cutover versions from their release notes.
+- Status: `done`, completed sprint 7
+- GnuTLS 3.8.8 and wolfSSL 5.8.0 set with `provenance: measured` in sprint 5.
+- NSS set to 3.118 (sprint 7): standardised ML-KEM TLS groups added and made
+  default there; the pre-standard Kyber draft was disabled in 3.116, so 3.118 is
+  a clean cutover. Primary sources in the config.
+- LibreSSL encoded as a sourced negative (sprint 7): a 2025 survey found no PQC
+  in any released version through 3.9, so `pqc_absent_through: "3.9"` resolves
+  <= 3.9 to a measured `not_capable` and newer releases to `unknown`.
 
 ### T7 Replace classification heuristics with authoritative registers
 - Status: `ready` (data sourcing) but see the decision note
@@ -143,3 +145,4 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 - Handshake output parser split out and tested via synthetic transcripts (sprint 4)
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
 - Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/mechanisms.md`, coverage floor 65 -> 70 (sprint 6)
+- NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)

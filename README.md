@@ -142,6 +142,58 @@ clearing the disclosure guard. Modality B and the capability resolver feed the
 same report along independent paths; the detection pack stands alone, consumed
 by a SOC rather than by this pipeline.
 
+## Runtime mechanism
+
+The Architecture diagram above is static structure; this one is behaviour over
+time — what actually happens, in order, when a run executes. It is the six
+`make` targets as a sequence, including the two places the run can stop itself:
+the rate-limited collection loop and the fail-closed disclosure guard.
+
+```mermaid
+sequenceDiagram
+    actor Op as Operator
+    participant SEL as select_targets
+    participant CT as crt.sh (public CT)
+    participant ST as store (data/raw, git-ignored)
+    participant AGG as passive_cert.aggregate
+    participant G as disclosure guard
+    participant SC as hndl_score
+    participant CAP as pqc_capability
+    participant REP as build_report
+
+    Op->>SEL: make select (pinned, hashed ranking)
+    SEL-->>Op: selection manifest (counts, hashes, no names)
+
+    Op->>CT: make collect
+    loop per domain, rate-limited + retried on 429/5xx
+        CT-->>ST: parsed dimensions (vuln flags True/False/None)
+        Note over ST: atomic write, TTL freshness, resumable
+    end
+
+    Op->>AGG: make aggregate
+    AGG->>ST: read host records
+    AGG->>G: sector aggregate (counts only)
+    alt host identifier, IPv4, or bucket < min
+        G--xAGG: FAIL CLOSED, write aborted
+    else clean
+        G-->>AGG: data/aggregates written
+    end
+
+    Op->>SC: make score
+    SC-->>Op: sector scores (measured x sector assumption)
+
+    Op->>CAP: make capability (inventory export)
+    CAP-->>Op: capable / not_capable / unknown (per host)
+
+    Op->>REP: make report
+    REP->>G: rendered markdown
+    G-->>REP: docs/report.md (guard-clean, or build fails)
+```
+
+Each participant maps to the module that implements it and the section of
+`docs/mechanisms.md` that explains it; that mapping table is kept in
+`mechanisms.md` so the diagram and the prose cannot drift apart.
+
 ## Provenance convention
 
 Three labels, used in code, in output records and in the report:
@@ -469,7 +521,7 @@ against synthetic transcripts, closing the largest untested surface without a
 `CONTRIBUTING.md`; disclosure lint widened to the root prose files.
 
 Sprint 5: verified capability thresholds for GnuTLS (3.8.8) and wolfSSL (5.8.0)
-with references, NSS and LibreSSL left `null` rather than guessed; packaged with
+with references (NSS and LibreSSL verified later, in sprint 7); packaged with
 `pyproject.toml` and six `pqc-*` console scripts, `pip install -e .`, path hacks
 removed from tests via `conftest.py`; coverage measured with an honest floor in
 CI; this runbook.
@@ -483,6 +535,8 @@ threshold) resolved an upgraded host as `not_capable`. The disclosure guard
 could not see IPv4 literals at all. Each fix carries a regression test that
 fails against the previous release. Coverage floor raised 65 to 70;
 `docs/mechanisms.md` added.
+
+Sprint 7: capability thresholds for NSS (3.118) and LibreSSL verified against primary sources, closing the last `null` entries with real values. LibreSSL has no PQC in any released version through 3.9, which is a measured negative, not merely unknown; the resolver now expresses that through `pqc_absent_through` so a confirmed absence at or below the verified version reports `not_capable` while a newer release stays `unknown`.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test.

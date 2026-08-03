@@ -139,22 +139,50 @@ def resolve(library: str, version: str, cfg: dict) -> dict:
         return {"verdict": "unknown", "reason": "library not in configuration"}
 
     threshold = spec.get("pqc_hybrid_kex_from")
-    if threshold is None:
+    if threshold is not None:
+        cmp = compare_versions(version, str(threshold))
+        if cmp is None:
+            return {"verdict": "unknown", "reason": f"unparseable version {version!r}",
+                    "threshold": threshold}
         return {
-            "verdict": "unknown",
-            "reason": f"no threshold configured ({spec.get('provenance', 'unknown')})",
-            "threshold": None,
+            "verdict": "capable" if cmp >= 0 else "not_capable",
+            "reason": f"{version} {'>=' if cmp >= 0 else '<'} {threshold}",
+            "threshold": threshold,
+            "provenance": spec.get("provenance", "unknown"),
         }
 
-    cmp = compare_versions(version, str(threshold))
-    if cmp is None:
-        return {"verdict": "unknown", "reason": f"unparseable version {version!r}",
-                "threshold": threshold}
+    # No positive cutover. A library may still have a SOURCED NEGATIVE: a
+    # highest version confirmed to ship no PQC. That is not the same as unknown,
+    # and collapsing the two would either hide a real finding (report a
+    # confirmed-incapable host as unknown) or overclaim (report an unverified
+    # newer release as not_capable). So it is version-aware: at or below the
+    # verified ceiling is a measured not_capable; anything newer is unknown,
+    # because the absence was never checked there.
+    absent_through = spec.get("pqc_absent_through")
+    if absent_through is not None:
+        cmp = compare_versions(version, str(absent_through))
+        if cmp is None:
+            return {"verdict": "unknown", "reason": f"unparseable version {version!r}",
+                    "absent_through": absent_through}
+        if cmp <= 0:
+            return {
+                "verdict": "not_capable",
+                "reason": f"{version} <= {absent_through}; no released version "
+                          f"through {absent_through} ships PQC",
+                "absent_through": absent_through,
+                "provenance": spec.get("provenance", "unknown"),
+            }
+        return {
+            "verdict": "unknown",
+            "reason": f"{version} is newer than {absent_through}, the last version "
+                      f"verified to lack PQC; not checked",
+            "absent_through": absent_through,
+        }
+
     return {
-        "verdict": "capable" if cmp >= 0 else "not_capable",
-        "reason": f"{version} {'>=' if cmp >= 0 else '<'} {threshold}",
-        "threshold": threshold,
-        "provenance": spec.get("provenance", "unknown"),
+        "verdict": "unknown",
+        "reason": f"no threshold configured ({spec.get('provenance', 'unknown')})",
+        "threshold": None,
     }
 
 

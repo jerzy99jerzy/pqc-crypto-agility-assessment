@@ -10,6 +10,36 @@ than glossed.
 
 ---
 
+## 0. Diagram map
+
+The two diagrams in `README.md` — the Architecture (data-flow) diagram and the
+Runtime (sequence) diagram — use the same node names. Each maps to a source
+module and to the section of this document that explains it, so a reader can go
+from a box in the picture to the code and to the prose without guessing. This
+table is the single source of that mapping; if a diagram node is added or
+renamed, it is updated here.
+
+| Diagram node | Source module | Mechanism section |
+|---|---|---|
+| `select_targets` / selection manifest | `collectors/select_targets.py` | [1. Selection](#1-selection-establishing-a-denominator) |
+| `crt.sh` / passive collection | `collectors/crtsh.py`, `collectors/certparse.py` | [2. Passive collection](#2-passive-collection-certificate-dimensions-from-public-ct) |
+| `store` (`data/raw`) | `collectors/store.py` | [3. Store](#3-store-resumable-atomic-host-scoped) |
+| `passive_cert.aggregate` / sector aggregates | `collectors/passive_cert.py` | [4. Aggregation and the disclosure guard](#4-aggregation-and-the-disclosure-guard) |
+| `disclosure guard` (fail-closed) | `collectors/disclosure.py` | [4. Aggregation and the disclosure guard](#4-aggregation-and-the-disclosure-guard) |
+| `hndl_score` / sector scores | `scoring/hndl_score.py`, `scoring/weights.yaml` | [5. HNDL scoring](#5-hndl-scoring) |
+| Modality B handshake (Architecture only) | `active/handshake_demo.py` | [6. Active demonstration](#6-active-demonstration) |
+| `pqc_capability` | `inventory/pqc_capability.py`, `config/pqc_capability.yaml` | [7. Endpoint capability resolution](#7-endpoint-capability-resolution) |
+| `detection` (Architecture only) | `detection/sigma/`, `detection/kql/` | [8. Detection content](#8-detection-content) |
+| `build_report` / `docs/report.md` | `reporting/build_report.py` | [9. Reporting](#9-reporting) |
+
+The Runtime diagram shows the six `make` targets in execution order and the two
+points a run can halt itself: the rate-limited collection loop (section 3) and
+the fail-closed guard (section 4). The Architecture diagram adds the two nodes
+that stand outside that main sequence — Modality B and the detection pack —
+which feed the report and the SOC respectively along independent paths.
+
+---
+
 ## 1. Selection: establishing a denominator
 
 `collectors/select_targets.py`
@@ -209,7 +239,12 @@ Verdicts are `capable`, `not_capable`, or `unknown`. **Unknown stays unknown.**
 A library with no verified threshold, or a version string that cannot be parsed,
 is reported as unknown rather than folded into `not_capable`, because a wrong
 threshold reclassifies an entire population and nobody rechecks a number that
-already looks plausible. Thresholds carry their own provenance, and a library
+already looks plausible. A *sourced negative* is distinct from unknown and is
+recorded as such: where a library is confirmed to ship no PQC through a known
+version, `pqc_absent_through` marks that ceiling, so a version at or below it
+resolves to a measured `not_capable` while anything newer stays `unknown` rather
+than being assumed incapable on a release the source never examined (this is how
+LibreSSL is encoded). Thresholds carry their own provenance, and a library
 versioned by commit rather than by release string is unknown by design.
 
 Capability is a precondition, not behaviour: a host running a capable library

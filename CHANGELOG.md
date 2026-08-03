@@ -3,6 +3,35 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.7.0] - 2026-08-03
+
+Capability sprint. Closes the last two `null` entries in the capability
+configuration with primary-sourced values, and adds a resolver mechanism to
+express a *sourced negative* — a confirmed absence — as distinct from unknown.
+
+### Added
+- **NSS capability threshold: 3.118** (`measured`). The standardised ML-KEM TLS
+  groups landed in NSS 3.118 (`mlkem768x25519` made default, `secp256r1mlkem768`
+  and `secp384r1mlkem1024` added). The pre-standard Kyber draft was disabled in
+  3.116 and 3.117 added no TLS ML-KEM, so 3.118 is a clean cutover, not a
+  default-flip over an earlier non-default window. Primary sources in the config.
+- **LibreSSL as a sourced negative.** A 2025 survey found no PQC in any released
+  LibreSSL version through 3.9. New config field `pqc_absent_through` records the
+  verified ceiling: a version at or below it resolves to a measured `not_capable`;
+  a newer release resolves `unknown` rather than being assumed incapable on a
+  version the source never examined.
+- `tests/test_sprint7.py`: NSS threshold cases, LibreSSL sourced-negative in both
+  directions, and resolver precedence (a positive threshold wins over
+  `pqc_absent_through`).
+
+### Changed
+- `resolve()` gains the `pqc_absent_through` branch. A positive
+  `pqc_hybrid_kex_from` still takes precedence; the negative path is consulted
+  only when no positive cutover exists.
+- Capability config bumped to 1.1 (2026-08-03).
+- Docs realigned: methodology, mechanisms, README, TODO no longer describe NSS
+  and LibreSSL as `null -> unknown`.
+
 ## [0.6.0] - 2026-08-02
 
 Correctness sprint. Three defects found by review of the 0.5.0 tree, each of
@@ -78,3 +107,5 @@ disclosure gates enforced in CI.
 [0.5.0]: https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/releases/tag/v0.5.0
 
 [0.6.0]: https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/releases/tag/v0.6.0
+
+[0.7.0]: https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/releases/tag/v0.7.0

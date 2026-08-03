@@ -13,8 +13,8 @@
 # rather than guessing, because a wrong threshold silently reclassifies an
 # entire population and nobody rechecks a number that already looks plausible.
 
-version: 1.0
-updated: 2026-07-29
+version: 1.1
+updated: 2026-08-03
 
 libraries:
   openssl:
@@ -39,13 +39,20 @@ libraries:
       - https://www.mail-archive.com/gnutls-help@lists.gnutls.org/msg01835.html
 
   nss:
-    pqc_hybrid_kex_from: null
-    provenance: unknown
+    pqc_hybrid_kex_from: "3.118"
+    provenance: measured
     note: >
-      Threshold not verified against a primary source during this work. NSS has
-      shipped hybrid PQ (xyber768d00) and later ML-KEM groups, but the exact
-      release cutover was not confirmed here, so it stays null and resolves to
-      unknown rather than being guessed.
+      Standardised ML-KEM hybrid TLS groups landed in NSS 3.118 (2025-11-18):
+      that release adds secp256r1mlkem768 and secp384r1mlkem1024 and makes
+      mlkem768x25519 (the standardised X25519MLKEM768, IANA 0x11EC) the default
+      (Bug 1983313). The pre-standard draft group (xyber768d00) is not counted:
+      NSS 3.116 (2025-09-11) explicitly DISABLED kyber, and 3.117 added no
+      TLS ML-KEM groups, so 3.118 is the genuine cutover with no non-default
+      window to under-count. A host below 3.118 is not_capable of the
+      standardised hybrid.
+    references:
+      - https://firefox-source-docs.mozilla.org/security/nss/releases/nss_3_118.html
+      - https://firefox-source-docs.mozilla.org/security/nss/releases/nss_3_116.html
 
   wolfssl:
     pqc_hybrid_kex_from: "5.8.0"
@@ -61,8 +68,19 @@ libraries:
 
   libressl:
     pqc_hybrid_kex_from: null
-    provenance: unknown
-    note: Threshold not verified for the deployed build.
+    pqc_absent_through: "3.9"
+    provenance: measured
+    note: >
+      Sourced negative, not merely unknown. A 2025 survey of PQC support across
+      cryptographic libraries found LibreSSL ships no NIST PQC algorithms in any
+      released version, examining the 3.7-3.9 release notes (2022-2024) and
+      reporting no announced roadmap. `pqc_absent_through: "3.9"` is the highest
+      version with that confirmation, so <= 3.9 resolves not_capable (measured),
+      while a newer LibreSSL (>= 4.0) resolves unknown rather than being assumed
+      incapable - the absence was never verified there. Re-check when LibreSSL
+      publishes ML-KEM TLS support.
+    references:
+      - https://arxiv.org/html/2508.16078v1
 
   boringssl:
     pqc_hybrid_kex_from: null

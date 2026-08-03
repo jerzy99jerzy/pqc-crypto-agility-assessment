@@ -89,9 +89,14 @@ def test_missing_threshold_is_unknown_not_not_capable(cfg):
                  and spec.get("provenance") != "not_applicable"]
     assert null_libs, "expected at least one unverified library while some remain null"
     for library in null_libs:
+        # 99.0.0 is above any plausible sourced-negative ceiling, so a library
+        # with pqc_absent_through still lands on unknown here (newer than what
+        # was verified) rather than a fabricated verdict.
         result = resolve(library, "99.0.0", cfg)
         assert result["verdict"] == "unknown", library
-        assert result["threshold"] is None
+        # No positive threshold may drive the verdict; a sourced negative
+        # reports via absent_through, never via a phantom pqc_hybrid_kex_from.
+        assert result.get("threshold") is None
 
 
 def test_verified_thresholds_produce_real_verdicts(cfg):
