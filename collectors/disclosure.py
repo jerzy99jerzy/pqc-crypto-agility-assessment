@@ -69,6 +69,7 @@ ALLOWED_TOKENS = {
     "crt.sh", "sectors.json", "handshake_demo.json", "weights.yaml",
     "hndl_sector_scores.json", "targets.yaml", "reference_hosts.yaml",
     "selection_manifest.json", "methodology.md", "README.md", "report.md",
+    "licensing.md", "mechanisms.md", "todo.md", "contributing.md", "changelog.md",
     "passive_cert.py", "hndl_score.py", "certparse.py", "store.py",
     "crtsh.py", "disclosure.py", "select_targets.py", "build_report.py",
 }
