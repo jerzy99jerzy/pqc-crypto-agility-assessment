@@ -46,3 +46,8 @@ make verify || { echo "make verify failed; commit aborted"; exit 1; }
 HOOK
 chmod +x .git/hooks/pre-commit
 ```
+
+**Stage new documentation before running `make verify`.** The disclosure
+allowlist for repository filenames is derived from `git ls-files`, so an
+untracked `.md` file is not yet a known filename and the prose lint will flag
+it. This is deliberate: an untracked file must not be able to allowlist itself.
