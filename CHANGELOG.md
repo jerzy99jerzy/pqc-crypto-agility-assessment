@@ -44,6 +44,15 @@ of the hand-maintained filename allowlist that produced both.
   and a build-breaking check that no `ALLOWED_TOKENS` entry is unreachable.
 - Version-string cases (`3.5.0.2024`, `1.1.1w`) pinning the looser boundary
   against false positives in the other direction.
+- **Project codename: ANANKE**, after Stanislaw Lem's story of that name. The
+  repository slug, package name and console scripts are unchanged and stay
+  descriptive: the naming convention keeps codenames in documentation and out of
+  anything CI, PyPI or an import path resolves. Rationale in `README.md` under
+  *On the name*.
+- `docs/mvp.md`: release criteria for the three candidate audiences, each with a
+  definition of done, a distance estimate and its blockers. `TODO.md` records
+  what is not done; this records what finished means, which was unstated for
+  eight sprints.
 
 ## [0.7.0] - 2026-08-03
 

@@ -13,6 +13,8 @@ Status legend:
 - `decision` needs a human choice, not engineering.
 
 Each open item states an acceptance test, so "done" is not a matter of opinion.
+Which subset of them constitutes a finished product is a different question and
+is answered in `docs/mvp.md`, not here.
 
 ---
 

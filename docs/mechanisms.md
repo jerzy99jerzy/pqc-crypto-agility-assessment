@@ -1,5 +1,7 @@
 # Mechanisms
 
+Project codename: ANANKE.
+
 How the pipeline works, mechanism by mechanism. `README.md` states the thesis and
 the scope; `methodology.md` covers the epistemic labels and the reasoning behind
 the design; this document describes what the code actually does.

@@ -1,8 +1,14 @@
 # PQC Crypto-Agility Assessment
 
+### Codename: ANANKE
+
 > Certificate dimensions come from public data. PQC readiness is demonstrated
 > actively only against own and reference infrastructure. Third-party estate is
 > never touched actively.
+
+Release criteria and the definition of done for each intended audience live in
+[`docs/mvp.md`](./docs/mvp.md). The codename is explained under
+[On the name](#on-the-name).
 
 ## Thesis
 
@@ -309,6 +315,7 @@ pqc-crypto-agility-assessment/
 ├── docs/
 │   ├── methodology.md
 │   ├── mechanisms.md    #   how each mechanism works
+│   ├── mvp.md           #   release criteria per audience, definition of done
 │   └── report.md        #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
@@ -556,7 +563,41 @@ in the prose scan only, so the structural guard that collected data passes
 through keeps zero filename exemptions.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
-and an acceptance test.
+and an acceptance test. What *finished* means, which is a separate question,
+lives in [`docs/mvp.md`](./docs/mvp.md).
+
+## On the name
+
+**ANANKE** is taken from Stanislaw Lem's story of that name, from the Pilot Pirx
+cycle. The word itself (Ἀνάγκη) is the Greek personification of necessity: the
+constraint that is not negotiated with. Both readings are load-bearing here, and
+the second one is the reason the name was chosen over better-known alternatives.
+
+**Necessity.** The regulatory milestones and the Q-Day horizon behind them are
+fixed points the programme is organised around, not preferences to be traded
+against appetite. A deadline in a Commission recommendation does not move
+because a migration is inconvenient.
+
+**Inherited brittleness.** In Lem's story a control system fails because it was
+trained into the rigid, compulsive habits of the man who built it, and those
+habits held right up to the moment conditions moved outside what they were
+formed for. That is not an analogy to crypto-agility; it is its definition.
+Cryptography hard-wired into an estate works exactly until the environment
+changes, and the failure is not in the algorithm but in the absence of a seam to
+replace it through. This project measures how deep that rigidity runs.
+
+The name deliberately avoids a triumphalist register. An artefact whose central
+claim is a documented list of what it cannot see should not be called *The
+Invincible*.
+
+### Naming convention
+
+Tools in this line are codenamed after Lem. Codenames live in documentation and
+in conversation; repository slugs, package names and console scripts stay
+descriptive and machine-boring, because those are what CI, PyPI and search
+operate on. `pqc-crypto-agility-assessment` is the slug and stays the slug.
+The two layers are kept separate on purpose: a codename that leaks into an
+import path is a rename waiting to break someone's pipeline.
 
 ## Licensing
 
