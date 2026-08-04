@@ -540,3 +540,12 @@ Sprint 7: capability thresholds for NSS (3.118) and LibreSSL verified against pr
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test.
+
+## Licensing
+
+Dual-licensed: **AGPL-3.0-only** (see [`LICENSE`](./LICENSE)) **or** a commercial
+license from the author. Running a modified version as a network service under
+AGPL-3.0 obliges you to release your source (AGPL section 13); a commercial
+license waives that. Details and contact in [`LICENSING.md`](./LICENSING.md).
+
+Copyright (c) 2026 Jerzy Siwecki.
