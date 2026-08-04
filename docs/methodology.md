@@ -1,6 +1,9 @@
 # Methodology
 
-Version 7.0, 2026-08-03. Sprint 7: NSS (3.118) and LibreSSL capability
+Version 8.0, 2026-08-04. Sprint 8: the disclosure guard was blind to host
+identity adjacent to an underscore; boundaries rewritten and the filename
+allowlist derived from the tracked file list instead of hand-maintained.
+Sprint 7: NSS (3.118) and LibreSSL capability
 thresholds verified against primary sources; a sourced-negative resolver path
 (`pqc_absent_through`) so a confirmed absence is not reported as unknown.
 Sprint 6: correctness review of the 0.5.0 tree - tri-state algorithm
@@ -367,7 +370,36 @@ into anything destined for `data/aggregates/`. The guard had been described as
 enforcement of the scope statement for five sprints while missing a whole class
 of host identifier.
 
-### 9.2 Earlier sprints
+### 9.2 Sprint 8: a word boundary is not a name boundary
+
+`HOSTNAME_RE` and `IPV4_RE` were anchored on `\b`. `_` is a word character, so
+no boundary exists between `_` and a letter and no match may begin there:
+`acme_bank.pl`, `cn=corp_bank.pl` and `host_10.0.0.1` produced no regex match
+at all and passed the structural guard silently. This is the third defect found
+in the same module, and the pattern across all three is the same - the guard
+was correct about the class of thing it was looking for and wrong about the
+alphabet it was looking in. The boundaries are now written explicitly:
+underscore is treated as a delimiter on the left, and a trailing suffix
+(`bank.pl_backup`) no longer hides a host either.
+
+The regression is not hypothetical for a project whose raw store holds
+subject CNs. Any concatenated identifier - an export column, a filename stem, a
+CSV field glued to a prefix - carried host identity straight through the one
+control that is supposed to make the scope statement true.
+
+A second finding, self-inflicted: the CI fix in sprint 7's tail added repository
+document names to `ALLOWED_TOKENS` to stop the prose lint failing on
+`LICENSING.md`. That set is shared with the structural guard, so a fix scoped in
+its own commit message to prose widened the strict guard as well, and
+`{"source": "mechanisms.md"}` became publishable output. The allowlist is now
+split by intent: `ALLOWED_TOKENS` stays small and hand-maintained for the strict
+guard, while repository filenames are derived from `git ls-files` and admitted
+in the prose scan only. Eight of the twenty-four previous entries were
+unreachable in any case, since the regex tokenises `hndl_score.py` as
+`score.py`; a test now fails the build on a dead entry, because an allowlist
+that accumulates literals nobody can trigger reads as coverage it does not have.
+
+### 9.3 Earlier sprints
 
 `RateLimiter._last` defaulted to `0.0`, so the first call measured its elapsed
 time against the epoch of `time.monotonic()`. On Linux that epoch is system

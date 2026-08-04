@@ -103,7 +103,7 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
   from the test suite. Module-level fallbacks for direct-script execution are
   kept deliberately, since the collectors can still be run by path.
 - Verified: imports resolve from an unrelated working directory, console
-  scripts run, 82 tests pass.
+  scripts run, 82 tests pass (147 as of sprint 8).
 
 ### T9 Coverage measurement in CI
 - Status: `done`, sprint 5
@@ -111,17 +111,20 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
   enforced in CI. The subprocess branch of the handshake carries
   `# pragma: no cover` with a reason; the gap to 100% is argparse `main()`
   wrappers exercised through their callees, not hidden logic. Current total
-  ~69%.
+  ~75% (sprint 8).
 
 ---
 
 ## Decisions (human, not engineering)
 
 ### T10 License
-- Status: `decision`
-- Sprint 4 ships an MIT `LICENSE` as a working default. If this is a portfolio
-  artefact meant to be read but not reused, or if a copyleft or source-available
-  license fits better, change it. It is one file.
+- Status: `done`, decided after sprint 7
+- Resolved to dual licensing: AGPL-3.0-only for community use, commercial
+  license from the author to waive copyleft. AGPL section 13 is the operative
+  clause, since the plausible commercial deployment is a network service. See
+  `LICENSING.md`.
+- Note: tags v0.5.0 through v0.7.0 were published under MIT and that grant is
+  not retroactively revocable. Relicensing binds later releases only.
 
 ### T11 Track A vs Track B framing of this artefact
 - Status: `decision`
@@ -146,4 +149,4 @@ Each open item states an acceptance test, so "done" is not a matter of opinion.
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
 - Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/mechanisms.md`, coverage floor 65 -> 70 (sprint 6)
 - NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)
-- [debt] Disclosure allowlist (`ALLOWED_TOKENS` in `collectors/disclosure.py`) is hand-maintained; new repo files with ccTLD-like extensions (`.md`/`.py`/`.sh`/`.io`) surface as a red main when missing (see LICENSING.md, CI #9). Fix: drive known-files from `git ls-files` filtered to `SAFE_FILE_EXTENSIONS` + `.md`/`.py`, exact tracked-path match = not-a-host. Prose scan only; strict JSON guard keeps zero extension exemptions. [wniosek, osobny sprint]
+- Disclosure guard boundary defect (host identity adjacent to `_` matched nothing and passed both guards); filename allowlist derived from `git ls-files` for the prose scan, strict guard restored to zero filename exemptions (sprint 8)

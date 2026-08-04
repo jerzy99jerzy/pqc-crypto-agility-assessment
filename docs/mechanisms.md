@@ -142,12 +142,28 @@ checks:
 - **Statistical.** Bucket sizes are re-checked against the declared minimum at
   write time, independently of the aggregation logic that produced them.
 
+Neither pattern is anchored on `\b`. Underscore is a word character, so `\b`
+never fires between `_` and a letter, and a match may only begin at a boundary:
+`acme_bank.pl` and `host_10.0.0.1` matched nothing at all until sprint 8. The
+boundaries are written by hand instead, treating `_` as the delimiter it is in
+practice while still refusing to start mid-run inside a longer name.
+
 A prose variant scans committed markdown, minus hosts declared as `self` or
 `reference` in the allowlist, since naming a positive control is part of the
 method. The prose scan strips fenced blocks and inline code first, because a
 guard that flags every dotted identifier in the documentation gets switched off
 within a week; the structural guard, which has no such exemption, is what runs
 over collected data.
+
+The two scans also differ in what counts as a filename. Several extensions the
+repository uses are live ccTLDs (`.md` is Moldova, `.py` Paraguay, `.io` the
+British Indian Ocean Territory), so exempting them as a class would open a
+blind spot exactly where a domain is most likely to be mistaken for a file.
+The prose scan resolves this by deriving the permitted names from the tracked
+file list (`git ls-files`, with a scoped filesystem walk as fallback for a
+source tarball): a token is benign if a file by that name is actually in the
+repository. The structural guard does not consult that set at all and keeps
+zero filename exemptions, because that is the path collected data travels.
 
 `tests/lint_disclosure.py` runs the same guards from the outside over files
 already on disk, in CI. The writers can be bypassed by hand-editing a JSON file;

@@ -312,14 +312,21 @@ pqc-crypto-agility-assessment/
 │   └── report.md        #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
+│   ├── fixtures/             # synthetic handshake transcripts, labelled as such
 │   ├── test_pipeline.py
 │   ├── test_sprint2.py
 │   ├── test_collection.py
 │   ├── test_capability.py
 │   ├── test_handshake.py
-│   ├── test_sprint6.py
+│   ├── test_sprint6.py       # correctness fixes, regression against 0.5.0
+│   ├── test_sprint7.py       # NSS / LibreSSL thresholds, sourced negative
+│   ├── test_sprint8.py       # disclosure guard boundaries, derived allowlist
 │   ├── validate_sigma.py
 │   └── lint_disclosure.py
+├── LICENSE                   # AGPL-3.0-only
+├── LICENSING.md              # dual-license terms
+├── CHANGELOG.md
+├── TODO.md                   # open items, each with an acceptance test
 ├── pyproject.toml            # installable, console scripts, coverage config
 └── .github/workflows/ci.yml
 ```
@@ -537,6 +544,16 @@ fails against the previous release. Coverage floor raised 65 to 70;
 `docs/mechanisms.md` added.
 
 Sprint 7: capability thresholds for NSS (3.118) and LibreSSL verified against primary sources, closing the last `null` entries with real values. LibreSSL has no PQC in any released version through 3.9, which is a measured negative, not merely unknown; the resolver now expresses that through `pqc_absent_through` so a confirmed absence at or below the verified version reports `not_capable` while a newer release stays `unknown`.
+
+Sprint 8: correctness review of the disclosure guard itself. Both host patterns
+were anchored on a word boundary, and underscore is a word character, so host
+identity glued to an underscore (`acme_bank.pl`, `host_10.0.0.1`) matched
+nothing and passed the guard silently for eight sprints. Boundaries rewritten,
+with regression cases in both directions. The hand-maintained filename
+allowlist that caused a red build every time a repository document was added is
+gone: permitted filenames are derived from the tracked file list, and admitted
+in the prose scan only, so the structural guard that collected data passes
+through keeps zero filename exemptions.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test.
