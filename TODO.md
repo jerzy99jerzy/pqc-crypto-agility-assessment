@@ -57,8 +57,8 @@ is answered in `docs/MVP.md`, not here.
   passing the disclosure guard on its aggregate output.
 
 ### T4 Verify Defender / Sentinel / ARG schema against a live tenant
-- Status: `blocked-external`
-- Blocker: no tenant available here. The KQL columns are `[inference]` from
+- Status: `ready` (unblocked by T15: dev tenant available through a vendor relationship)
+- Was blocked on tenant access; that is resolved. The KQL columns are `[inference]` from
   documentation.
 - Scope: `DeviceTvmCertificateInfo`, `DeviceTvmSoftwareInventory`,
   Application Gateway access log field naming, Resource Graph key properties.
@@ -144,6 +144,37 @@ is answered in `docs/MVP.md`, not here.
 
 ---
 
+### T16 Sigma to backend compilation
+- Status: `ready`
+- The rules parse; nothing shows they convert to a deployable query for any
+  named target. A buyer wants to paste a query, not an intermediate
+  representation, so for the content-pack path this is a gating item rather
+  than polish.
+- Acceptance test: `sigma convert` produces committed output for at least one
+  concrete backend per rule, and the committed output is regenerated in CI so
+  it cannot drift from the rule it came from.
+
+---
+
+### T15 Vendor dev instances: Splunk and Azure Sentinel
+- Status: `ready` (was the blocker behind T4 and half of MVP-C)
+- Both are obtainable through existing vendor relationships rather than
+  purchased or trialled, which removes the access problem that made MVP-C
+  inexpressible in sprints. Recorded here because the backlog previously
+  treated it as external and immovable, and that is no longer true.
+- Sequence matters: write the detection content first, stand both instances up
+  once, and validate everything in a single session. Validating piecemeal means
+  writing each query twice.
+- Acceptance test: every row in `detection/README.md` marked `[inference]` for
+  field names moves to `[measured]` with the command that produced it recorded
+  (`getschema` for KQL, a `| fieldsummary` or sample event for SPL). Rows that
+  cannot be validated stay `[inference]` and say why.
+- Second-order value beyond field validation: a live tenant is the only way to
+  find out whether these queries are affordable at real telemetry volume. A
+  correct query that costs a fortune to schedule is not deployable content.
+
+---
+
 ### T14 IPv6 literals bypass the disclosure guard
 - Status: `ready`
 - Found in the threat-model v2.0 review. `HOSTNAME_RE` and `IPV4_RE` cover
@@ -201,6 +232,8 @@ is answered in `docs/MVP.md`, not here.
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
 - Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/MECHANISMS.md`, coverage floor 65 -> 70 (sprint 6)
 - NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)
+- Cross-check of a reported estate against its public CT footprint: asymmetric by design (publicly logged and undeclared is a finding, declared and not publicly logged is not), counts only, blind spot stated rather than implied (T12, sprint 12)
+- SPL detection pack alongside KQL, with a structural discipline lint in `make verify` (sprint 12)
 - Portfolio consistency: single `ananke` package namespace (five generic top-level packages removed), uppercase documentation filenames, `SECURITY.md`, `docs/THREAT-MODEL.md`, `docs/ARCHITECTURE.md` with block index, `pqc-fixture` synthetic estates including two adversarial worlds, prose-only infrastructure allowlist (sprint 10)
 - Source seam: `CrtShSource` and `LocalPemSource` behind one interface; aggregate reports the regime instead of constants; `reported` provenance for operator-supplied sets; suppression relaxed only for first-party estates (sprint 9)
 - Disclosure guard boundary defect (host identity adjacent to `_` matched nothing and passed both guards); filename allowlist derived from `git ls-files` for the prose scan, strict guard restored to zero filename exemptions (sprint 8)

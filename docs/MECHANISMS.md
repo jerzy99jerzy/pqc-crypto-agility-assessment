@@ -380,3 +380,24 @@ to what is actually content: script and style bodies are stripped before the
 prose scan, and every string literal inside script blocks is walked
 separately, so embedded data is held to the guard while the surrounding code,
 which is repository-reviewed, is not falsely flagged for `ms.value`.
+
+
+## Estate cross-check
+
+`pqc-crosscheck` compares two raw stores: the operator's supplied estate and a
+passive Certificate Transparency collection over the same operator's domains.
+It is the only available control on the completeness of a `reported` set, and
+its value comes entirely from being asymmetric.
+
+A host present in CT and absent from the dump is a finding: a publicly trusted
+certificate exists and was not declared. A host present in the dump and absent
+from CT is not a finding: an internal PKI issues certificates that never reach a
+public log. Treating the second as a discrepancy would generate noise in direct
+proportion to how well the operator runs their own CA, which is the opposite of
+useful.
+
+Comparison happens in memory on normalised names - a CT wildcard matches the
+declared apex, a trailing dot is the same name, case is not identity - and the
+written output is counts. The operator can reproduce the list of undeclared
+hosts locally from their own two stores; the artefact that leaves the
+engagement carries a number.

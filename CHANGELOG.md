@@ -3,6 +3,60 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.12.0] - 2026-08-05
+
+The control on the client who supplies a convenient dump, and a second
+detection target.
+
+### Added
+- **`pqc-crosscheck` (T12).** Compares an operator-supplied estate against the
+  same operator's public Certificate Transparency footprint. This is the only
+  available control on adversary A3: nothing inside a directory of certificates
+  can show the directory is the estate, but the operator can be looked for in a
+  record they do not curate.
+
+  The asymmetry is the design. Publicly logged and absent from the dump is a
+  finding. Declared and not publicly logged is *not*: internal PKI never
+  reaches a public log, and counting it as a discrepancy would produce noise in
+  proportion to how well the internal CA is run. The blind spot - a host both
+  internally issued and omitted - is stated in the output rather than implied.
+
+  Output is counts. Host names are compared in memory and never written: the
+  result is "two publicly logged certificates were not in the supplied set",
+  never which two. The operator reproduces the list locally; a report that
+  travels does not carry it. Written through the guard anyway.
+- **SPL detection pack** (`detection/spl/`), four searches alongside the KQL
+  set: key-exchange inventory with numerator and denominator from one filter,
+  certificates with no renewal scheduled before the milestone, crypto-library
+  capability, and a burndown trend using `tstats` where a data model exists.
+  Version comparison uses a zero-padded numeric key rather than string
+  comparison, because `"3.5"` sorts below `"3.10"` and that exact defect
+  shipped once in the pipeline (F2, sprint 6).
+- **`make spl-check`**, wired into `verify`. Deliberately not a parser: there is
+  no offline SPL parser worth trusting, and half of one would pass broken
+  searches while implying they were checked. It verifies discipline instead -
+  every search declares its question, source assumption and validation status,
+  the milestone is a macro rather than a retyped date, and no search filters on
+  `="true"` in a way that drops the `unknown` state.
+- `tests/test_sprint12.py`: 16 cases, pinning the asymmetry from both
+  directions, normalisation against false discrepancies (a CT wildcard against
+  the declared apex), count-only output, and the lint's own rules.
+
+### Changed
+- **T4 is no longer blocked.** Dev instances of both Splunk and Azure Sentinel
+  are obtainable through existing vendor relationships (T15), which removes the
+  access problem that made MVP-C inexpressible in sprints. `docs/MVP.md` revised
+  accordingly: the path that looked furthest from ready is the one whose
+  blockers dissolved first.
+- T16 recorded: Sigma rules parse but no backend compilation output is
+  committed. Gating for the content-pack path.
+
+### Fixed
+- The SPL lint flagged this repository's own comment warning against the
+  dropped-`unknown` anti-pattern, because content checks ran over the whole
+  file. Scoped to the search body, which is how a linter avoids teaching people
+  to stop documenting what it checks for.
+
 ## [0.11.1] - 2026-08-05
 
 Threat-model review (v2.0) and the one code fix it produced.

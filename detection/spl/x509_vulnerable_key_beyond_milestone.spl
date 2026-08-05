@@ -1,0 +1,42 @@
+* Question: which observed certificates use a quantum-vulnerable key AND remain
+* valid past the compliance milestone?
+*
+* The conjunction is the point. A vulnerable key on a certificate expiring next
+* quarter is handled by normal renewal; a vulnerable key valid past the
+* milestone has no renewal scheduled that would replace it, and each one is a
+* deliberate change. That split is the same one the assessment pipeline
+* produces in `self_resolving_via_rotation` vs `intervention_required`, so the
+* SOC number and the assessment number are comparable by construction.
+*
+* Milestone is a macro so it tracks configuration rather than being retyped in
+* four searches. Define in macros.conf:
+*   [pqc_milestone]
+*   definition = 2030-12-31
+*
+* Source: Zeek/Corelight x509.log.
+* Validation status: [inference] - field names from Zeek documentation.
+
+index=zeek sourcetype=zeek:x509 earliest=-1d@d latest=@d
+| eval milestone=strptime("`pqc_milestone`", "%Y-%m-%d")
+| eval not_after=coalesce(certificate.not_valid_after, certificate_not_valid_after)
+| eval key_alg=lower(coalesce(certificate.key_alg, certificate_key_alg))
+| eval key_len=coalesce(certificate.key_length, certificate_key_length)
+| eval quantum_vulnerable=case(
+    match(key_alg, "rsa|dsa"), "true",
+    match(key_alg, "^ec|ecdsa"), "true",
+    match(key_alg, "mldsa|ml-dsa|dilithium|slhdsa|sphincs"), "false",
+    1==1, "unknown")
+| where quantum_vulnerable!="false" AND not_after > milestone
+| eval outlives_by_days=round((not_after-milestone)/86400, 0)
+| eval expiry=strftime(not_after, "%Y-%m-%d")
+| stats count AS observations,
+        values(key_alg) AS key_algorithms,
+        min(expiry) AS earliest_expiry,
+        max(outlives_by_days) AS outlives_milestone_by_days
+    BY certificate.subject
+| sort - outlives_milestone_by_days
+
+* Tri-state, deliberately: `unknown` is kept alongside `true` by the `!="false"`
+* filter rather than being dropped. An unrecognised algorithm reported as safe
+* is the failure mode this whole project exists to avoid, and a filter written
+* as `quantum_vulnerable="true"` would silently do exactly that.

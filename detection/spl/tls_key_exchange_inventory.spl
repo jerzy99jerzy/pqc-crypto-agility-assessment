@@ -1,0 +1,29 @@
+* Question: how much external TLS still negotiates classical-only key
+* agreement, and how much already negotiates a hybrid group?
+*
+* This is one search, not two, because the numerator and the denominator have
+* to come from the same filter or the ratio is meaningless. Splitting them into
+* separate saved searches is the most common way this metric goes wrong.
+*
+* Source: Zeek/Corelight ssl.log via the Splunk_TA_zeek or Corelight TA.
+* Adjust index and sourcetype to the local deployment.
+*
+* Not an alert. Schedule daily, feed a dashboard or summary index. Routing this
+* to an analyst queue is a deployment error.
+*
+* Validation status: [inference] - field names from Zeek documentation, not
+* verified against a live indexer. See detection/README.md.
+
+index=zeek sourcetype=zeek:ssl earliest=-1d@d latest=@d
+| eval curve=coalesce(curve, cipher_suite_curve, "unknown")
+| eval group_class=case(
+    match(curve, "(?i)mlkem|kyber|x25519mlkem|secp256r1mlkem|4588|11ec"), "hybrid_pqc",
+    match(curve, "(?i)^(x25519|secp256r1|secp384r1|secp521r1|ffdhe)"), "classical_only",
+    curve=="unknown", "unobserved",
+    1==1, "other")
+| stats count AS sessions,
+        dc(id.resp_h) AS distinct_servers BY group_class, server_name
+| eventstats sum(sessions) AS total_sessions
+| eval pct_of_total=round(100*sessions/total_sessions, 2)
+| table group_class server_name sessions distinct_servers pct_of_total
+| sort - sessions

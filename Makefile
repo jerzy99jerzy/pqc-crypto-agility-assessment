@@ -36,10 +36,13 @@ coverage:        ## unit tests with coverage, enforces the floor in pyproject.to
 lint-sigma:      ## structural validation of the Sigma pack (needs pysigma)
 	python tests/validate_sigma.py
 
+lint-spl:        ## structural discipline checks over the SPL pack
+	python tests/validate_spl.py
+
 lint-disclosure: ## scan committed artefacts for host identifiers
 	python tests/lint_disclosure.py
 
 validate:        ## scoring config: saturation, floors, weights, bands
 	pqc-score --validate-config
 
-verify: coverage lint-sigma validate lint-disclosure  ## everything CI runs
+verify: coverage lint-sigma lint-spl validate lint-disclosure  ## everything CI runs

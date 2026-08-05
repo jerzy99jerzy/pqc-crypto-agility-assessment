@@ -1,0 +1,31 @@
+* Question: is hybrid key agreement share moving, and fast enough to reach the
+* milestone?
+*
+* A trend, deliberately not a threshold. The number that matters to a migration
+* programme is the gradient, and a rule that alerts on a level tells nobody
+* whether the programme is working.
+*
+* Uses tstats against an accelerated data model where one exists; the raw
+* fallback is in the comment below and is materially slower at volume.
+*
+* Source: Zeek/Corelight ssl.log via the Network_Traffic data model, or raw
+* index=zeek sourcetype=zeek:ssl for the fallback below.
+* Validation status: [inference] - not run against a live indexer, and the cost
+* at real telemetry volume is unverified. A correct search that is unaffordable
+* to schedule is not deployable content.
+
+| tstats summariesonly=t count AS sessions
+    FROM datamodel=Network_Traffic.All_Traffic
+    WHERE All_Traffic.app=ssl earliest=-90d@d latest=@d
+    BY _time span=1d All_Traffic.ssl_curve
+| rename All_Traffic.ssl_curve AS curve
+| eval is_hybrid=if(match(curve, "(?i)mlkem|kyber|4588|11ec"), 1, 0)
+| stats sum(eval(sessions*is_hybrid)) AS hybrid, sum(sessions) AS total BY _time
+| eval hybrid_pct=round(100*hybrid/total, 3)
+| timechart span=1d avg(hybrid_pct) AS hybrid_pct
+| trendline sma7(hybrid_pct) AS trend_7d
+
+* Raw fallback, no data model:
+* index=zeek sourcetype=zeek:ssl earliest=-90d@d
+* | eval is_hybrid=if(match(curve,"(?i)mlkem|kyber|4588|11ec"),1,0)
+* | timechart span=1d avg(is_hybrid) AS hybrid_share

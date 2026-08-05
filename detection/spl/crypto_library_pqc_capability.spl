@@ -1,0 +1,49 @@
+* Question: on how many hosts is the crypto stack even capable of negotiating a
+* hybrid group?
+*
+* This is the search that decides whether a migration plan can be costed.
+* Replacing a certificate on a host whose TLS library cannot do hybrid key
+* agreement achieves nothing, so capability is the gate that comes before the
+* certificate work, not after it.
+*
+* Thresholds are the ones the assessment pipeline resolves from primary
+* sources; keep them in one lookup rather than in the search, so the SOC number
+* and the assessment number cannot drift:
+*   pqc_capability_thresholds.csv: product,min_version,source
+*   openssl,3.5.0,https://openssl-library.org/news/openssl-3.5-notes/
+*   nss,3.118,...
+*
+* Source: any inventory feed normalised to the CIM Certificates or Endpoint
+* datamodel; Splunk_TA_nix package inventory works as well.
+* Validation status: [inference] - not run against a live indexer.
+
+index=inventory sourcetype=package_inventory earliest=-7d@d
+| eval product=lower(package_name)
+| search product IN ("openssl", "libssl", "nss", "libnss3", "gnutls", "libressl", "boringssl")
+| lookup pqc_capability_thresholds.csv product OUTPUT min_version, source
+| eval have=replace(package_version, "[^0-9.].*$", "")
+| eval cmp_have=printf("%03d%03d%03d",
+      tonumber(mvindex(split(have,"."),0)),
+      coalesce(tonumber(mvindex(split(have,"."),1)),0),
+      coalesce(tonumber(mvindex(split(have,"."),2)),0))
+| eval cmp_min=printf("%03d%03d%03d",
+      tonumber(mvindex(split(min_version,"."),0)),
+      coalesce(tonumber(mvindex(split(min_version,"."),1)),0),
+      coalesce(tonumber(mvindex(split(min_version,"."),2)),0))
+| eval pqc_capability=case(
+    isnull(min_version), "unknown",
+    cmp_have >= cmp_min, "capable",
+    1==1, "not_capable")
+| stats dc(host) AS hosts BY product, pqc_capability
+| eventstats sum(hosts) AS fleet
+| eval pct=round(100*hosts/fleet, 1)
+| sort product, pqc_capability
+
+* Version comparison is done on a zero-padded numeric key rather than string
+* comparison, because "3.5" sorts below "3.10" as a string and a truncated
+* version string would otherwise be misclassified as not capable. That exact
+* defect shipped once in the assessment pipeline (F2, sprint 6) and is worth
+* not repeating in the query language.
+*
+* `unknown` is a reported outcome, not a silent drop: a product with no
+* threshold in the lookup must show up as unresolved rather than disappear.

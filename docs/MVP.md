@@ -103,7 +103,7 @@ is not a product.
 
 **Definition of done.**
 
-- [ ] Every KQL query validated against a live tenant with `getschema` or a
+- [ ] Every KQL and SPL query validated against a live instance with `getschema` or a
       sample event, and its row in `detection/README.md` moved from
       `[inference]` to `[measured]` (T4).
 - [ ] Zeek codepoint spelling for `0x11EC` confirmed on a real sensor build, and
@@ -114,9 +114,13 @@ is not a product.
 - [ ] Versioning and a maintenance commitment stated, since a ruleset that is
       not maintained is a one-off download, not a subscription.
 
-**Distance.** `[inference]` Not expressible in sprints. T4 and T5 are access
-problems, and the compile step is unstarted work that is not in `TODO.md` at
-all.
+**Distance.** `[inference]` Revised: expressible in sprints, which it was not
+when this file was written. T4 was an access problem and is not one any more
+(T15: dev instances of both Splunk and Sentinel are obtainable through existing
+vendor relationships), and T5 is a container and a pcap. What remains is work:
+write the content, stand the instances up once, validate everything in a single
+session, and add the backend compile step. The path that looked furthest from
+ready is now the one whose blockers dissolved first.
 
 **Commercial note.** `[inference]` This is the highest-margin path in the
 expansion analysis and the furthest from ready. That gap is the decision the

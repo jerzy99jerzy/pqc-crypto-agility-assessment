@@ -298,7 +298,8 @@ sector aggregation was supposed to protect.
 ```
 pqc-crypto-agility-assessment/
 ├── collectors/
-│   ├── sources.py       #   source seam: CT, offline PEM, and the regime each implies          # Modality A: passive, third-party, public data only
+│   ├── sources.py       #   source seam: CT, offline PEM, and the regime each implies
+│   ├── crosscheck.py    #   reported estate vs public CT footprint, counts only          # Modality A: passive, third-party, public data only
 │   ├── crtsh.py         #   CT client, rate limited, backoff, retry
 │   ├── certparse.py     #   X.509 dimension extraction, PQC OID aware
 │   ├── store.py         #   idempotent per-host store, atomic writes
@@ -315,6 +316,7 @@ pqc-crypto-agility-assessment/
 ├── reporting/
 │   └── build_report.py  #   aggregates -> docs/report.md, cannot read raw data
 ├── detection/
+│   ├── spl/             #   Splunk searches, same questions as the KQL set
 │   ├── sigma/           #   Zeek and Windows inventory rules
 │   └── kql/             #   Defender, Sentinel, Resource Graph queries
 ├── config/
@@ -587,6 +589,15 @@ CT is `measured` because the log is a public record nobody curated, while an
 operator's dump is `reported`, since we parse every certificate in it but the
 completeness of the set is the client's claim. Minimum bucket size relaxes only
 for a first-party estate and only because a source said so.
+
+Sprint 12: `pqc-crosscheck`, the only available control on a `reported` estate.
+Nothing inside a directory of certificates can show that the directory is the
+estate, so the check looks for the same operator in a record they do not
+curate. Asymmetric on purpose: publicly logged and undeclared is a finding,
+declared and not publicly logged is not, because internal PKI never reaches a
+public log. Output is counts; the operator reproduces the list locally. Also a
+Splunk detection pack alongside the KQL set, with a structural discipline check
+in `make verify`.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test. What *finished* means, which is a separate question,
