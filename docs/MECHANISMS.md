@@ -401,3 +401,31 @@ declared apex, a trailing dot is the same name, case is not identity - and the
 written output is counts. The operator can reproduce the list of undeclared
 hosts locally from their own two stores; the artefact that leaves the
 engagement carries a number.
+
+
+## At-rest key inventory
+
+`pqc-keys` reads an export the operator produces from their own key management
+service and emits sector counts. Nothing in the engagement holds credentials
+into their vault, which is why provenance is `reported`.
+
+The classification is tri-state, as everywhere else: an unrecognised key family
+resolves to unknown rather than to safe, because a number that quietly reports
+an unrecognised algorithm as quantum-safe is the one failure this pipeline
+cannot afford.
+
+Wrapping keys and signing keys are counted apart. Wrapping carries
+harvest-now-decrypt-later exposure and is what the HNDL score models. Signing
+carries forgery after a quantum computer exists, on a horizon set by whatever
+requires the signature to remain verifiable, which is frequently longer and
+governed by different rules. A single combined count would be wrong for both.
+
+Symmetric keys are counted and excluded from migration scope in the same
+output, with the reason stated in the payload rather than left implicit: AES-256
+retains 128 bits of effective strength against Grover.
+
+The counter worth reading first is `no_expiry_set`. A key with no expiry is a
+key nobody has planned to rotate, and a key nobody has planned to rotate is a
+key nobody has planned to migrate. It is an observation about agility rather
+than about cryptography, and it needs no capability this project did not
+already have.

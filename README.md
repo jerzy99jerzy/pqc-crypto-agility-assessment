@@ -267,8 +267,37 @@ locally from what was taken from vendor documentation.
 Stated up front, because the gap between what a passive assessment measures and
 what a migration programme needs is where most vendor content quietly lives.
 
-- It does not see cryptography at rest.
-- It does not see HSMs.
+**Cryptography at rest, in four layers rather than one.** The blanket claim
+that a passive assessment "does not see cryptography at rest" is both too
+pessimistic and too vague to be useful, and it lets a client assume the worst
+about the layer that is fine.
+
+- **Bulk data encryption is not in migration scope at all.** Volumes,
+  databases and object stores are encrypted with AES. Grover halves the
+  effective strength, so AES-256 retains 128 bits and needs no replacement.
+  This is most of what an organisation means by "encrypted at rest", and it is
+  the part nobody has to budget for.
+- **The key-wrapping layer is the real at-rest exposure, and it is
+  countable.** Envelope encryption puts data under a symmetric data key and
+  wraps that key with an RSA or EC key encryption key. A quantum adversary does
+  not break the data; it unwraps the key. `pqc-keys` summarises an
+  operator-supplied key management export into counts, and
+  `detection/kql/arg_keyvault_key_inventory.kql` answers the same question from
+  Azure Resource Graph.
+- **Signing keys run on a different clock and are counted separately.** A
+  document that must stay verifiable in 2040 and is signed today with RSA-2048
+  is exposed to forgery once a quantum computer exists, which is not
+  harvest-now-decrypt-later and is not what the HNDL score measures. Conflating
+  the two clocks produces a number that means nothing for either.
+- **Application-layer cryptography is not observable** and this project does
+  not pretend otherwise: a key compiled into a binary or encryption performed
+  by hand inside application code has no surface to enumerate.
+
+Beyond that layer:
+
+- It does not see HSM internals beyond the attributes a key management API
+  exposes, and a key held outside any managed service is invisible to every
+  modality here. That last category is usually the worst part of an estate.
 - It does not see internal PKI, except indirectly through endpoint certificate inventory in the detection layer.
 - It does not see code, embedded libraries, or pinned certificates in applications.
 - It does not see the negotiated key exchange group of third-party services. PQC readiness of key agreement is not observable from certificate data. It requires an active handshake, which this project does not perform against third-party estate.
@@ -299,7 +328,8 @@ sector aggregation was supposed to protect.
 pqc-crypto-agility-assessment/
 ├── collectors/
 │   ├── sources.py       #   source seam: CT, offline PEM, and the regime each implies
-│   ├── crosscheck.py    #   reported estate vs public CT footprint, counts only          # Modality A: passive, third-party, public data only
+│   ├── crosscheck.py    #   reported estate vs public CT footprint, counts only
+│   ├── keys.py          #   at-rest key inventory: the wrapping layer, counts only          # Modality A: passive, third-party, public data only
 │   ├── crtsh.py         #   CT client, rate limited, backoff, retry
 │   ├── certparse.py     #   X.509 dimension extraction, PQC OID aware
 │   ├── store.py         #   idempotent per-host store, atomic writes
@@ -598,6 +628,15 @@ declared and not publicly logged is not, because internal PKI never reaches a
 public log. Output is counts; the operator reproduces the list locally. Also a
 Splunk detection pack alongside the KQL set, with a structural discipline check
 in `make verify`.
+
+Sprint 13: cryptography at rest, and a correction. The repository had been
+claiming it does not see at-rest cryptography while shipping a query that
+enumerates stored asymmetric keys, and the claim was unhelpful anyway: at rest
+is four layers and only two are post-quantum problems. `pqc-keys` summarises an
+operator-supplied key management export into counts, keeping wrapping and
+signing keys on separate clocks and counting symmetric keys explicitly out of
+scope. The counter worth reading first is the number of keys with no expiry
+set: nobody planned to rotate them, so nobody planned to migrate them.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test. What *finished* means, which is a separate question,

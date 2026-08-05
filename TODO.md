@@ -144,6 +144,20 @@ is answered in `docs/MVP.md`, not here.
 
 ---
 
+### T18 Offline keystore parsing
+- Status: `ready`
+- `pqc-keys` reads an export from a managed key service. The other half of the
+  at-rest estate lives in keystores on disk: PKCS#12, JKS, and PEM private key
+  files next to the certificates the offline source already reads.
+- Worth doing because it needs no access to the client's key management at all,
+  which is the same property that makes the offline certificate path usable in
+  a first meeting.
+- Acceptance test: a PKCS#12 bundle yields the same counters as the equivalent
+  KMS export, an unparseable or password-protected file is recorded as an error
+  rather than dropped, and no alias or friendly name reaches the output.
+
+---
+
 ### T16 Sigma to backend compilation
 - Status: `ready`
 - The rules parse; nothing shows they convert to a deployable query for any
@@ -232,6 +246,7 @@ is answered in `docs/MVP.md`, not here.
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
 - Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/MECHANISMS.md`, coverage floor 65 -> 70 (sprint 6)
 - NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)
+- At-rest key inventory as a `reported` source: wrapping and signing keys counted on separate clocks, symmetric counted and excluded from scope, no-expiry surfaced as the agility finding; README's at-rest claim corrected to four layers (T17, sprint 13)
 - Cross-check of a reported estate against its public CT footprint: asymmetric by design (publicly logged and undeclared is a finding, declared and not publicly logged is not), counts only, blind spot stated rather than implied (T12, sprint 12)
 - SPL detection pack alongside KQL, with a structural discipline lint in `make verify` (sprint 12)
 - Portfolio consistency: single `ananke` package namespace (five generic top-level packages removed), uppercase documentation filenames, `SECURITY.md`, `docs/THREAT-MODEL.md`, `docs/ARCHITECTURE.md` with block index, `pqc-fixture` synthetic estates including two adversarial worlds, prose-only infrastructure allowlist (sprint 10)

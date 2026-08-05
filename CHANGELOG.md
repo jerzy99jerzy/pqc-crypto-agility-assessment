@@ -3,6 +3,49 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.13.0] - 2026-08-05
+
+Cryptography at rest, and the correction of a claim this repository had been
+making about itself.
+
+### Added
+- **`pqc-keys` (T17).** Summarises an operator-supplied key management export
+  (Azure Resource Graph, `aws kms describe-key`, GCP KMS list) into sector
+  counts. The engagement needs no credentials into the client's key
+  management: they produce the export, so provenance is `reported` for the
+  same reason the offline certificate estate is.
+
+  Two design points carry it. **Signing and wrapping keys are counted
+  separately**, because a wrapping key carries harvest-now-decrypt-later
+  exposure while a signing key carries forgery-after-Q-day exposure on a longer
+  and differently regulated horizon, and a combined figure means nothing for
+  either. **Symmetric keys are counted and excluded from migration scope**
+  rather than omitted, so the report can say the AES layer is fine instead of
+  leaving a client to assume the worst.
+
+  The strongest at-rest finding available needs no new observation and is
+  surfaced as its own counter: a key with no expiry is a key nobody planned to
+  rotate, which makes it a key nobody planned to migrate. That is a statement
+  about crypto-agility rather than cryptography, which is the thesis of the
+  project.
+- `tests/test_sprint13.py`: 35 cases, including tri-state classification on a
+  third input path, the purpose split, epoch and ISO expiry, absent versus
+  unknown rotation policy, and that no key identifier or vault name reaches the
+  written output.
+
+### Changed
+- **`README.md` corrected.** The flat claim that the assessment "does not see
+  cryptography at rest" was false against the repository's own contents
+  (`detection/kql/arg_keyvault_key_inventory.kql` has enumerated stored
+  asymmetric keys since sprint 4) and unhelpful to a reader, because at rest is
+  four layers and only two are post-quantum problems. Now stated as four:
+  bulk AES is out of migration scope entirely and needs no budget; the
+  asymmetric wrapping layer is the real exposure and is countable; signing keys
+  run on a different clock; application-layer cryptography is invisible and the
+  project does not pretend otherwise. Keys held outside any managed service are
+  named as the category no modality here can reach, and usually the worst part
+  of an estate.
+
 ## [0.12.0] - 2026-08-05
 
 The control on the client who supplies a convenient dump, and a second
