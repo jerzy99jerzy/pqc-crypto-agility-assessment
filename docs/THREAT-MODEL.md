@@ -56,6 +56,34 @@ Residual risk: a host identifier in a field the guard walks but does not
 recognise as host-shaped, for example an internationalised domain in punycode
 form, or a bare IPv6 literal. Documented rather than fixed.
 
+The sprint 10 review added a variant that had already shipped: dictionary
+*keys*. The sector label supplied on the command line becomes a key in the
+committed aggregate, and the guard's value walk never sees keys, so
+`--sector "acme-bank.pl production"` published an organisation name. Sector
+labels are now shape-validated at the source (a plain categorical token, no
+dots) and independently re-checked at aggregation, so a future source that
+forgets the first check still fails at the second. The same channel carried a
+second payload: markup in the label was stored cross-site scripting waiting for
+an HTML renderer, refused by the same validation.
+
+### A6. A hostile estate that attacks the run itself
+
+Distinct from A3: this adversary does not want a flattering number, they want
+no number. One crafted file that crashes the collection stops the assessment.
+
+Probed empirically in the sprint 10 review: a 50 MB non-certificate file parses
+in under a tenth of a second with an error recorded, and a path-traversal
+subject CN cannot escape the store root because separators are flattened. One
+probe landed: a SAN dNSName longer than the filesystem's 255-byte name limit
+crashed the write with `OSError`, since a subject CN is capped at 64 bytes by
+X.509 but a SAN is not, and host identity falls back to SAN. Store keys are now
+length-capped with a digest suffix that preserves uniqueness.
+
+Residual risk: resource exhaustion through volume rather than size - a
+directory of millions of small valid certificates is processed one by one and
+bounded only by the operator's patience. Accepted: the operator chose the
+directory.
+
 ### A2. An adversary who poisons a public log
 
 Certificate Transparency accepts submissions from anyone with a trusted CA

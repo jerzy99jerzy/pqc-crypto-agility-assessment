@@ -2,7 +2,8 @@
 
 Project codename: ANANKE. See `README.md` for the naming convention.
 
-Version 10.0, 2026-08-05. Sprint 10: portfolio consistency, single package namespace, threat model, adversarial fixtures.
+Version 11.0, 2026-08-05. Sprint 11: configurable milestone, decision layer in the aggregate, HTML rendering through the same guard.
+Sprint 10: Sprint 10: portfolio consistency, single package namespace, threat model, adversarial fixtures.
 Sprint 9: Sprint 9: source seam, and a fourth provenance value (`reported`) for data supplied by the party the report is for.
 Sprint 8: the disclosure guard was blind to host
 identity adjacent to an underscore; boundaries rewritten and the filename

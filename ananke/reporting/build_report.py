@@ -20,6 +20,7 @@ import argparse
 import datetime as dt
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -131,7 +132,9 @@ def section_measured(sectors: dict | None) -> str:
     for sector, agg in sorted(sectors["sectors"].items()):
         n = agg["hosts_with_certificate"]
         vuln = agg["quantum_vulnerable_key"].get("True", 0)
-        beyond = agg["valid_beyond_2030_milestone"].get("True", 0)
+        beyond_counts = agg.get("valid_beyond_milestone",
+                                 agg.get("valid_beyond_2030_milestone", {}))
+        beyond = beyond_counts.get("True", 0)
         lines.append(
             f"| {sector} | {agg['hosts_observed']} | {n} | {vuln} ({_pct(vuln, n)}) "
             f"| {beyond} ({_pct(beyond, n)}) | {agg['pqc_indicators_observed']} |"
@@ -295,25 +298,103 @@ def build() -> str:
     return "\n".join(parts)
 
 
+_ACTIVE_BLOCK_RE = re.compile(r"<(script|style)\b[^>]*>.*?</\1>",
+                              re.IGNORECASE | re.DOTALL)
+_JSON_STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+
+def _strip_active_blocks(html_text: str) -> str:
+    """Remove <script> and <style> bodies before the prose scan."""
+    return _ACTIVE_BLOCK_RE.sub(" ", html_text)
+
+
+def _scan_embedded_data(html_text: str) -> list[str]:
+    """Walk every string literal inside script blocks through the host scan.
+
+    The code around the data is repository-reviewed; the data is not, so the
+    data gets the guard.
+    """
+    from ananke.collectors.disclosure import HOSTNAME_RE, IPV4_RE, _is_allowed
+    found: list[str] = []
+    for m in _ACTIVE_BLOCK_RE.finditer(html_text):
+        body = m.group(0)
+        for lit in _JSON_STRING_RE.findall(body):
+            for token in HOSTNAME_RE.findall(lit) + IPV4_RE.findall(lit):
+                if not _is_allowed(token):
+                    found.append(token)
+    return found
+
+
+def _validity_pairs() -> list[dict]:
+    """Date pairs for the horizon chart, read from the raw store.
+
+    The only fields extracted are not_before and not_after. This is the one
+    place the HTML path touches the store, it is identity-free by
+    construction, and the rendered output still passes the guard afterwards.
+    """
+    try:
+        from ananke.collectors.store import HostStore
+        from ananke.collectors.passive_cert import RAW_DIR
+        pairs = []
+        for rec in HostStore(RAW_DIR).iter_records():
+            for cert in rec.get("certificates", []):
+                if cert.get("parse_error"):
+                    continue
+                nb, na = cert.get("not_before"), cert.get("not_after")
+                if nb and na:
+                    pairs.append({"nb": str(nb)[:10], "na": str(na)[:10]})
+        return pairs
+    except Exception:
+        return []
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Build the assessment report")
-    p.add_argument("--out", type=Path, default=REPO_ROOT / "docs" / "report.md")
+    p.add_argument("--out", type=Path, default=None)
+    p.add_argument("--format", choices=["md", "html"], default="md")
     p.add_argument("--print", action="store_true", help="write to stdout as well")
     args = p.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)-7s %(message)s")
 
-    text = build()
-    suspicious = scan_text(text, extra_allowed=reference_hosts())
+    if args.format == "html":
+        from ananke.reporting.html_report import render_html
+        sectors = load("sectors.json")
+        if sectors is None:
+            log.error("no aggregates present; run collection and aggregation first")
+            return 2
+        text = render_html(sectors, load("hndl_sector_scores.json"), _validity_pairs())
+        default_out = REPO_ROOT / "docs" / "report.html"
+    else:
+        text = build()
+        default_out = REPO_ROOT / "docs" / "report.md"
+
+    # One gate for both formats, applied to what is actually document content.
+    # Markdown strips code fences. HTML strips <script> and <style> the same
+    # way - JavaScript is full of host-shaped tokens (ms.value, Date.UTC) that
+    # are code, not content - and then scans the scripts' embedded DATA
+    # separately: every JSON string literal inside them is walked, so a host
+    # identifier smuggled into the chart payload still fails while the code
+    # around it does not. Code is reviewable in the repository; data changes
+    # per engagement, which is exactly why data gets the stricter path.
+    if args.format == "html":
+        stripped = _strip_active_blocks(text)
+        suspicious = scan_text(stripped, extra_allowed=reference_hosts(),
+                               strip_code=False)
+        suspicious += _scan_embedded_data(text)
+    else:
+        suspicious = scan_text(text, extra_allowed=reference_hosts(),
+                               strip_code=True)
     if suspicious:
         raise DisclosureViolation(
             "report contains host-like tokens that are not declared reference hosts: "
             f"{sorted(set(suspicious))}"
         )
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(text, encoding="utf-8")
-    log.info("report written: %s (%d bytes)", args.out, len(text))
+    out = args.out or default_out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+    log.info("report written: %s (%d bytes)", out, len(text))
     if args.print:
         print(text)
     return 0

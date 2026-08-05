@@ -55,7 +55,8 @@ PQC_KEM_OIDS: dict[str, str] = {
     "2.16.840.1.101.3.4.4.3": "ML-KEM-1024",
 }
 
-# Milestone anchor for the "valid beyond 2030" dimension.
+# Default milestone anchor; the configured value arrives as a parameter to
+# parse_certificate. Kept as a module constant so old imports keep working.
 MILESTONE_2030 = dt.date(2030, 12, 31)
 
 
@@ -77,7 +78,8 @@ class CertRecord:
     signature_algorithm: str | None = None
     signature_oid: str | None = None
     signature_quantum_vulnerable: bool | None = None
-    valid_beyond_2030_milestone: bool | None = None
+    valid_beyond_milestone: bool | None = None
+    milestone_date: str | None = None
     parse_error: str | None = None
     provenance: str = "measured"
 
@@ -143,7 +145,7 @@ def _name_attr(name: x509.Name, oid: x509.ObjectIdentifier) -> str | None:
     return values[0].value if values else None
 
 
-def parse_certificate(data: bytes) -> CertRecord:
+def parse_certificate(data: bytes, milestone: dt.date | None = None) -> CertRecord:
     """Parse PEM or DER bytes into a CertRecord. Never raises on bad input."""
     from cryptography.hazmat.primitives import hashes
     from cryptography.x509.oid import ExtensionOID, NameOID
@@ -185,7 +187,8 @@ def parse_certificate(data: bytes) -> CertRecord:
             signature_algorithm=sig_name,
             signature_oid=sig_oid,
             signature_quantum_vulnerable=sig_vuln,
-            valid_beyond_2030_milestone=not_after.date() > MILESTONE_2030,
+            valid_beyond_milestone=not_after.date() > (milestone or MILESTONE_2030),
+            milestone_date=(milestone or MILESTONE_2030).isoformat(),
         )
     except Exception as exc:  # defensive: never kill a batch on one weird cert
         return CertRecord(sha256="", subject_cn=None, parse_error=repr(exc))

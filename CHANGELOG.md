@@ -3,6 +3,92 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.11.0] - 2026-08-05
+
+The report becomes a decision document. Sprint 11 in three moves: the
+milestone becomes configuration, the aggregate grows the split a plan is built
+from, and the report renders to HTML through the same disclosure gate as
+markdown.
+
+### Added
+- **Configurable milestone.** `ananke/config.py` reads `milestone.date` from
+  `weights.yaml` (default 2030-12-31, the EU coordinated roadmap date, kept
+  with its provenance). `--milestone` on `pqc-collect`; sources stamp each
+  record with the milestone it was parsed under.
+- **Decision layer in the aggregate**, per sector, counts only:
+  `self_resolving_via_rotation` vs `intervention_required` (recomputed from
+  `not_after` against the aggregation-time milestone, never read from the
+  stored boolean, so one store reclassifies under any milestone without
+  recollecting), expiry-year distribution of the intervention class, rotation
+  bands, `rotation_stats` (median/min/max validity and rotations-before-
+  milestone), and issuer distribution.
+- **`pqc-report --format html`.** One file, no network requests, designed dark
+  palette via `prefers-color-scheme`, print forces light. Interactive validity
+  horizon: every certificate as a date segment against a movable milestone
+  rule. Every interpolated value is escaped at the point of use; the chart
+  payload embeds date pairs only and the renderer drops any other field.
+- `tests/test_sprint11.py`: 13 cases covering the milestone swing, counter
+  emission, the issuer near-miss, escaping, and the embedded-data scan.
+
+### Changed
+- `valid_beyond_2030_milestone` renamed to `valid_beyond_milestone`, with the
+  old key still read everywhere (stores and scoring subjects from earlier
+  versions keep working). Records now carry `milestone_date`.
+- The report guard understands HTML: `<script>`/`<style>` bodies are stripped
+  before the prose scan - JavaScript is full of host-shaped tokens
+  (`ms.value`, `Date.UTC`) that are code, not content - and every string
+  literal inside script blocks is then walked separately, so a host
+  identifier smuggled into embedded data still fails while the code around it
+  does not. Code is repository-reviewed; data changes per engagement, which
+  is why data gets the stricter path.
+
+### Security
+- **Issuer distribution near-miss, caught during development.** On a
+  self-signed certificate the issuer IS the subject, so counting issuer CNs
+  would have walked host identity straight into committed aggregates - the
+  guard's A1 class, introduced and stopped inside one sprint by the sprint 2
+  suppression test. Shipped version counts `issuer_o` only, drops any
+  host-shaped value, and buckets the rest as self-signed. Pinned by two
+  regression tests.
+
+## [0.10.2] - 2026-08-05
+
+*Released as part of v0.11.0: the fixes below were cut on the same day and the
+patch was folded into the minor release rather than tagged separately.*
+
+Security review of the sprint 9-10 surface, done by probing rather than
+reading. Three findings, all fixed, all pinned with regression tests. The
+threat model gains an adversary class (A6) and records what was probed and
+held: path traversal through a subject CN cannot escape the store, and a 50 MB
+junk file parses in milliseconds with an error recorded.
+
+### Security
+- **S1: the sector label could publish an organisation name.** The label given
+  with `--sector` becomes a dictionary key in the committed aggregate, and the
+  disclosure guard walks values, never keys, so `--sector "acme-bank.pl
+  production"` shipped a name into the one artefact that promises to contain
+  none. Labels are now shape-validated at the source: a plain categorical
+  token, lowercase, no dots - the dot being exactly what makes a string
+  host-shaped. Aggregation re-checks every key independently, so a future
+  source that forgets the first check fails at the second.
+- **S2: the same channel carried markup.** A label containing `<script>` or
+  markdown table syntax was stored verbatim: cross-site scripting waiting for
+  the HTML renderer, table injection already reachable in the markdown one.
+  Refused by the same shape validation.
+- **S3: one crafted certificate stopped the whole run.** A subject CN is capped
+  at 64 bytes by X.509, but a SAN dNSName is not, and host identity falls back
+  to SAN, so a 250-character SAN crashed the store write with `OSError: File
+  name too long`. Store keys are now capped at 120 characters with a SHA-256
+  suffix that preserves uniqueness; a hostile estate cannot stop an assessment
+  with one long name.
+
+### Added
+- `docs/THREAT-MODEL.md` A6: a hostile estate that attacks the run itself,
+  with the empirical results of the probes that held and the residual risk
+  (volume exhaustion) that is accepted and why.
+- Six regression tests covering all three findings, including the
+  defense-in-depth path where a record bypasses source validation.
+
 ## [0.10.1] - 2026-08-05
 
 ### Fixed

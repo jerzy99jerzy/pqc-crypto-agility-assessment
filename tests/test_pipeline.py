@@ -54,7 +54,7 @@ def test_rsa_certificate_dimensions():
     assert rec["key_quantum_vulnerable"] is True
     assert rec["signature_quantum_vulnerable"] is True
     assert rec["validity_days"] == 90
-    assert rec["valid_beyond_2030_milestone"] is False
+    assert rec["valid_beyond_milestone"] is False
     assert rec["san_dns"] == ["rsa.test"]
     assert rec["provenance"] == "measured"
 
@@ -67,7 +67,7 @@ def test_ec_certificate_and_long_validity_flags_milestone():
     assert rec["key_algorithm"] == "EC"
     assert rec["key_parameter"] == "secp256r1"
     assert rec["key_quantum_vulnerable"] is True
-    assert rec["valid_beyond_2030_milestone"] is True
+    assert rec["valid_beyond_milestone"] is True
 
 
 def test_parser_never_raises_on_garbage():

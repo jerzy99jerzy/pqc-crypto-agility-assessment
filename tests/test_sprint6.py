@@ -189,7 +189,7 @@ def test_report_measured_section_renders_counts_and_percentages():
                 "key_algorithms": {"RSA-2048": 6, "EC-secp256r1": 2},
                 "signature_algorithms": {"sha256WithRSAEncryption": 8},
                 "quantum_vulnerable_key": {"True": 8},
-                "valid_beyond_2030_milestone": {"True": 2},
+                "valid_beyond_milestone": {"True": 2},
                 "validity_days_buckets": {"<=90d": 8},
                 "pqc_indicators_observed": 0,
             }

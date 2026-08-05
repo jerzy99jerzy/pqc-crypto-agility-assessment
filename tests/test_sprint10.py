@@ -57,7 +57,7 @@ def _collect(monkeypatch, tmp_path, pem_dir, sector="logistics"):
 # --------------------------------------------------------------------------- #
 def test_clean_world_surfaces_the_certificate_that_crosses_2030(world, tmp_path, monkeypatch):
     payload = _collect(monkeypatch, tmp_path, world("clean"))
-    counts = payload["sectors"]["logistics"]["valid_beyond_2030_milestone"]
+    counts = payload["sectors"]["logistics"]["valid_beyond_milestone"]
     assert counts.get("True", 0) >= 1, "the long-lived certificate is the whole point"
     assert payload["provenance"] == "reported"
 
@@ -112,7 +112,7 @@ def test_a_convenient_dump_is_indistinguishable_from_a_complete_one(world, tmp_p
     """No property of the files reveals what was left out. This is the argument
     for the label, and the reason the label sits on the set."""
     partial = _collect(monkeypatch, tmp_path / "a", world("partial"))
-    assert partial["sectors"]["logistics"]["valid_beyond_2030_milestone"].get("True", 0) == 0
+    assert partial["sectors"]["logistics"]["valid_beyond_milestone"].get("True", 0) == 0
     assert partial["provenance"] == "reported"
     assert partial["disclosure_policy"]["first_party_estate"] is True
 
@@ -190,3 +190,87 @@ def test_no_statement_separator_inside_a_mermaid_label():
             if inside and ";" in stripped and not stripped.startswith(("classDef", "class ")):
                 offenders.append(f"{name}:{number}: {stripped}")
     assert offenders == [], "semicolon inside a mermaid statement:\n" + "\n".join(offenders)
+
+
+# --------------------------------------------------------------------------- #
+# sprint 10 review findings: the sector label and the store key
+# --------------------------------------------------------------------------- #
+def test_sector_label_cannot_carry_a_host_identifier():
+    """S1. The sector travels into committed aggregates as a dictionary KEY,
+    which the guard's value walk never sees. An operator typing their company
+    domain as the sector published the one thing the project promises never to
+    publish."""
+    from ananke.collectors.sources import LocalPemSource, SectorLabelError
+
+    with pytest.raises(SectorLabelError):
+        LocalPemSource("/tmp", "acme-bank.pl production")
+
+
+def test_sector_label_cannot_carry_markup():
+    """S2. Same channel, different payload: markup in the sector was stored XSS
+    waiting for the HTML renderer."""
+    from ananke.collectors.sources import SectorLabelError, validate_sector
+
+    with pytest.raises(SectorLabelError):
+        validate_sector("logistics</script><script>alert(1)</script>")
+    with pytest.raises(SectorLabelError):
+        validate_sector("x | y |")  # markdown table injection
+
+
+def test_sector_label_is_shape_validated_not_blocklisted():
+    from ananke.collectors.sources import validate_sector
+
+    assert validate_sector("  Energy-Transmission ") == "energy-transmission"
+    assert validate_sector("sector_7") == "sector_7"
+
+
+def test_aggregate_independently_refuses_a_hostile_sector_key(tmp_path, monkeypatch):
+    """Defense in depth: even a record written by a source that skipped
+    validation must not aggregate under a host-shaped sector."""
+    raw = tmp_path / "raw"; raw.mkdir()
+    agg = tmp_path / "agg"; agg.mkdir()
+    monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
+    monkeypatch.setattr(passive_cert, "AGG_DIR", agg)
+    passive_cert.HostStore(raw).write("h1", {
+        "host": "h1", "sector": "acme-bank.pl", "modality": "first_party_offline",
+        "certificates": [{"key_algorithm": "RSA", "key_parameter": 2048,
+                          "key_quantum_vulnerable": True,
+                          "signature_algorithm": "sha256WithRSA",
+                          "valid_beyond_2030_milestone": False,
+                          "validity_days": 90}],
+    })
+    with pytest.raises(DisclosureViolation):
+        aggregate(min_bucket=1)
+
+
+def test_a_san_longer_than_a_filename_does_not_stop_the_run(tmp_path, monkeypatch):
+    """S3. A subject CN is capped at 64 bytes by X.509, but a SAN dNSName is
+    not, and host identity falls back to SAN. One long name crashed the whole
+    collection with OSError before the cap in host_key."""
+    import datetime as dt
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+    from ananke.collectors.sources import LocalPemSource
+    from ananke.collectors.store import host_key
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    now = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    long_san = "a" * 250 + ".example"
+    pem = (x509.CertificateBuilder().subject_name(x509.Name([]))
+           .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "CA")]))
+           .public_key(key.public_key()).serial_number(x509.random_serial_number())
+           .not_valid_before(now).not_valid_after(now + dt.timedelta(days=90))
+           .add_extension(x509.SubjectAlternativeName([x509.DNSName(long_san)]),
+                          critical=False)
+           .sign(key, hashes.SHA256())).public_bytes(serialization.Encoding.PEM)
+    (tmp_path / "long.pem").write_bytes(pem)
+
+    raw = tmp_path / "raw"; raw.mkdir()
+    monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
+    passive_cert.collect(LocalPemSource(tmp_path, "logistics"), ttl=0, force=True)
+
+    assert len(list(raw.rglob("*.json"))) == 1
+    assert len(host_key(long_san)) <= 140
+    assert host_key(long_san) != host_key("b" + long_san), "cap must keep uniqueness"

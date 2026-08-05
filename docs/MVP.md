@@ -72,8 +72,9 @@ number was reached.
 - [ ] One complete end-to-end run over a real target set, from ranking through
       selection manifest to sector aggregates, with the raw store retained
       locally and only aggregates committed.
-- [ ] `docs/report.md` generated from that run and readable by a non-technical
-      risk owner without a walkthrough.
+- [~] `docs/report.md` generated from that run and readable by a non-technical
+      risk owner without a walkthrough. The decision layer and the HTML
+      rendering exist (sprint 11); a real target set does not yet.
 - [x] An input path for an operator's own certificate estate, offline, so a
       client engagement is not blocked on public data (sprint 9).
 - [ ] The active modality demonstrated against at least one host under the

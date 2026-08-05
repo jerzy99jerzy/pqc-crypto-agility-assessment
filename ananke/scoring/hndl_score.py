@@ -160,7 +160,7 @@ def score_subject(subject: dict, cfg: dict, today: dt.date | None = None) -> dic
 
     subject keys (all optional, missing ones are reported as unknown):
         sector, key_algorithm, key_quantum_vulnerable,
-        signature_quantum_vulnerable, valid_beyond_2030_milestone, validity_days
+        signature_quantum_vulnerable, valid_beyond_milestone, validity_days
     """
     today = today or dt.date.today()
     milestone = milestone_date(cfg)
@@ -197,7 +197,8 @@ def score_subject(subject: dict, cfg: dict, today: dt.date | None = None) -> dic
         ),
     }
 
-    beyond = subject.get("valid_beyond_2030_milestone")
+    beyond = subject.get("valid_beyond_milestone",
+                         subject.get("valid_beyond_2030_milestone"))
     components["certificate_outlives_milestone"] = {
         "value": 1.0 if beyond else (0.0 if beyond is False else 0.5),
         "provenance": "measured" if beyond is not None else "unknown",

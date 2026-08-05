@@ -343,3 +343,40 @@ Aggregation refuses a store holding records from more than one modality. A
 percentage across a public sample and the same percentage across one operator's
 declared estate are different statements, and summing them yields a number with
 no referent.
+
+
+### Sector labels
+
+A sector names a category, never an organisation. The label supplied with the
+offline source becomes a dictionary key in the committed aggregate, and keys are
+a position the guard's value scan does not walk, so the label is validated at
+the source instead: lowercase letters, digits, hyphen and underscore, at most
+forty characters, no dots. The dot is excluded deliberately, because it is
+exactly what makes a string host-shaped. Aggregation re-checks every sector key
+independently, so the property holds even for a record written by code that
+skipped the first check.
+
+
+## The decision layer
+
+The aggregate carries, per sector, the split a migration plan is built from:
+certificates whose expiry falls on or before the configured milestone
+(self-resolving: normal renewal replaces them, the only required action is a
+changed issuance policy) against certificates that outlive it (intervention:
+no renewal is scheduled that would replace them). The split is recomputed from
+`not_after` against the milestone passed at aggregation time, never read from
+a stored flag, so a store collected under one milestone reclassifies under
+another without recollecting. Alongside it: the expiry-year distribution of
+the intervention class, rotation bands, median validity with a
+rotations-before-milestone figure, and the issuer distribution - `issuer_o`
+only, since on a self-signed certificate the issuer is the subject and
+counting CNs would carry host identity into committed output.
+
+## HTML rendering
+
+`pqc-report --format html` renders the same aggregates to a single file with
+no network requests. The disclosure gate is shared with markdown and applied
+to what is actually content: script and style bodies are stripped before the
+prose scan, and every string literal inside script blocks is walked
+separately, so embedded data is held to the guard while the surrounding code,
+which is repository-reviewed, is not falsely flagged for `ms.value`.

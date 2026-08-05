@@ -199,7 +199,7 @@ def test_report_builder_refuses_leaked_hostnames(monkeypatch, tmp_path: Path):
             "hosts_observed": 8, "hosts_with_certificate": 8,
             "key_algorithms": {"RSA-2048": 8}, "signature_algorithms": {},
             "quantum_vulnerable_key": {"True": 8},
-            "valid_beyond_2030_milestone": {"False": 8},
+            "valid_beyond_milestone": {"False": 8},
             "validity_days_buckets": {}, "pqc_indicators_observed": 0}},
     }), encoding="utf-8")
 

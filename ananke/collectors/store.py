@@ -11,6 +11,7 @@ Design constraints:
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import tempfile
@@ -21,8 +22,21 @@ from typing import Any
 _SAFE = re.compile(r"[^a-z0-9._-]+")
 
 
+# Filesystem limits are typically 255 bytes per name. A subject CN is capped at
+# 64 by X.509, but a SAN dNSName is not, and the offline source derives host
+# identity from SAN when the subject is empty - so the key length is
+# attacker-chosen. Cap it and keep uniqueness with a digest suffix; a hostile
+# estate must not be able to stop a run with one long name (found in the
+# sprint 10 review, probe P5).
+_MAX_KEY = 120
+
+
 def host_key(host: str) -> str:
-    return _SAFE.sub("_", host.strip().lower()).strip("_") or "unnamed"
+    key = _SAFE.sub("_", host.strip().lower()).strip("_") or "unnamed"
+    if len(key) > _MAX_KEY:
+        digest = hashlib.sha256(key.encode()).hexdigest()[:12]
+        key = f"{key[:_MAX_KEY]}-{digest}"
+    return key
 
 
 class HostStore:

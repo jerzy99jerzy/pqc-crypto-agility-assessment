@@ -32,18 +32,21 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 try:
     from ananke.collectors.certparse import parse_certificate
+    from ananke.config import load_milestone
     from ananke.collectors.crtsh import CrtShClient, select_current_leaves
 except ImportError:  # pragma: no cover
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from ananke.collectors.certparse import parse_certificate
+    from ananke.config import load_milestone
     from ananke.collectors.crtsh import CrtShClient, select_current_leaves
 
 log = logging.getLogger("sources")
@@ -51,6 +54,37 @@ log = logging.getLogger("sources")
 # Extensions read by the offline source. DER and PEM are both handled by
 # `parse_certificate`, which sniffs the encoding and never raises.
 PEM_SUFFIXES = {".pem", ".crt", ".cer", ".der"}
+
+# A sector label names a category, never an organisation, and it travels into
+# committed aggregates as a dictionary key - a position the disclosure guard's
+# value scan does not walk. Two findings from the sprint 10 review close here:
+# a label carrying a host identifier ("acme-bank.pl production") published the
+# one thing the project promises never to publish, and a label carrying markup
+# was stored XSS waiting for the HTML renderer. The fix is shape, not
+# blocklist: lowercase letters, digits, hyphen and underscore, bounded length.
+# Anything else is refused with the reason.
+_SECTOR_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+
+
+class SectorLabelError(ValueError):
+    """Raised when a sector label is not a plain categorical token."""
+
+
+def validate_sector(label: str) -> str:
+    """Return the label if it is a safe categorical token, else raise.
+
+    The dot is excluded deliberately: it is what makes a label host-shaped,
+    and a sector never legitimately contains one.
+    """
+    candidate = (label or "").strip().lower()
+    if not _SECTOR_RE.match(candidate):
+        raise SectorLabelError(
+            f"sector label {label!r} is not a plain token. Use lowercase "
+            "letters, digits, '-' or '_', max 40 chars, no dots: a sector "
+            "names a category (finance, logistics), never an organisation "
+            "or a host."
+        )
+    return candidate
 
 
 def _now() -> str:
@@ -88,12 +122,14 @@ class CrtShSource:
         client: CrtShClient,
         leaves: int = 2,
         skip: object = None,
+        milestone=None,
     ) -> None:
         self.targets = targets
         self.client = client
         self.leaves = leaves
         # Callable taking a host and returning True when a fresh record exists.
         self.skip = skip
+        self.milestone = milestone or load_milestone()
 
     def iter_records(self) -> Iterator[dict]:
         total = sum(len(v) for v in self.targets.values())
@@ -133,7 +169,7 @@ class CrtShSource:
             except Exception as exc:
                 record["errors"].append(f"fetch {cid}: {exc}")
                 continue
-            d = parse_certificate(pem).to_dict()
+            d = parse_certificate(pem, milestone=self.milestone).to_dict()
             d["crtsh_id"] = cid
             d["ct_entry_timestamp"] = entry.get("entry_timestamp")
             record["certificates"].append(d)
@@ -161,9 +197,10 @@ class LocalPemSource:
     modality = "first_party_offline"
     first_party = True
 
-    def __init__(self, directory: Path, sector: str) -> None:
+    def __init__(self, directory: Path, sector: str, milestone=None) -> None:
         self.directory = Path(directory)
-        self.sector = sector
+        self.sector = validate_sector(sector)
+        self.milestone = milestone or load_milestone()
 
     def iter_records(self) -> Iterator[dict]:
         files = sorted(
@@ -179,7 +216,7 @@ class LocalPemSource:
             except OSError as exc:
                 log.warning("unreadable: %s (%s)", path.name, exc)
                 continue
-            parsed = parse_certificate(raw)
+            parsed = parse_certificate(raw, milestone=self.milestone)
             d = parsed.to_dict()
             host = self._host_for(d, path)
             record = by_host.setdefault(host, {
