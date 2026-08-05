@@ -149,3 +149,61 @@ def test_layout_check_tolerates_generated_artefacts():
 
     assert "report.md" in lint.GENERATED
     assert "sectors.json" in lint.GENERATED
+
+
+def test_layout_check_survives_a_clean_checkout(tmp_path_factory, monkeypatch):
+    """Failed in CI twice, and both times the fix was another literal. A clean
+    checkout has no `data/raw/` (git-ignored) and no generated report, and the
+    map is right to draw both: a reader needs to know where output lands.
+
+    The exemption is derived from `.gitignore` rather than enumerated, which is
+    the same answer sprint 8 gave the hand-maintained disclosure allowlist. The
+    short explicit list beside it covers output whose tracking status differs
+    between clones, and the two mechanisms are kept separate so it stays clear
+    which one is doing the work.
+    """
+    import subprocess
+
+    import tests.lint_layout as lint
+
+    if not _git_available():
+        pytest.skip("git not present in this environment")
+
+    # A synthetic repository rather than the real one: the assertion is about
+    # the matching rule, and a test that depends on the surrounding checkout
+    # having a .git directory is the same environmental assumption this whole
+    # class of defect is made of.
+    repo = tmp_path_factory.mktemp("repo")
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    (repo / ".gitignore").write_text("data/raw/\n", encoding="utf-8")
+    monkeypatch.setattr(lint, "ROOT", repo)
+
+    assert lint._git_ignores("raw"), (
+        "a directory pattern needs the trailing-slash form once the directory "
+        "is gone, which is exactly the clean-checkout case")
+    assert not lint._git_ignores("sources.py")
+    assert "report.md" in lint.GENERATED
+
+
+def test_layout_check_still_fails_on_real_drift(tmp_path, monkeypatch):
+    """The exemptions must not swallow the case the check exists for."""
+    import tests.lint_layout as lint
+
+    monkeypatch.setattr(lint, "ROOT", tmp_path)
+    monkeypatch.setattr(lint, "README", tmp_path / "README.md")
+    (tmp_path / "ananke").mkdir()
+    (tmp_path / "README.md").write_text(
+        "```\npqc-crypto-agility-assessment/\n"
+        "├── ananke/\n│   └── vanished.py\n```\n", encoding="utf-8")
+
+    assert "vanished.py" in lint._mapped_names()
+    assert not lint._git_ignores("vanished.py")
+
+
+def _git_available() -> bool:
+    import subprocess
+    try:
+        subprocess.run(["git", "--version"], capture_output=True, check=True)
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False

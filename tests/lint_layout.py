@@ -28,6 +28,7 @@ Run through `make lint-layout`.
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -43,14 +44,52 @@ SUMMARISED = {"detection", "config", "data", "tests/fixtures", ".github"}
 SKIP_PARTS = {".git", "__pycache__", ".pytest_cache", ".venv", "venv",
               "dist", "build", ".ruff_cache", ".mypy_cache"}
 
-# Paths the map draws that a clean checkout legitimately does not have, because
-# they are produced by a run rather than committed. Drawing them is correct -
-# a reader needs to know where output lands - so their absence must not fail the
-# check. Caught on a clean clone: `docs/report.md` exists only after
-# `pqc-report`, and the check called that drift.
+# A drawn path must exist on disk *unless git ignores it*. Derived, not
+# enumerated, and that distinction is the whole point of this block.
+#
+# The hand-written version of this exemption failed in CI twice: first on
+# `docs/report.md`, which is generated, then on `data/raw`, which is created at
+# runtime and git-ignored. Each time the fix was to add one more literal, which
+# is precisely the maintenance trap that the hand-maintained disclosure
+# allowlist fell into in sprint 8 and that was solved there by deriving from
+# `git ls-files`. Applying the same answer here rather than a third literal.
+#
+# The rule reads cleanly: if the repository ignores a path, a clean checkout
+# will not have it, and the map is still right to draw it - a reader needs to
+# know where output lands. If the repository does not ignore it and it is
+# missing, that is drift.
+# Output whose tracking status legitimately differs between clones: generated
+# on demand, committed in one working copy and absent in another. Ignoring is
+# not the right signal for these, so they are listed. Kept short and separate
+# from the derived rule so the two mechanisms stay distinguishable.
 GENERATED = {"report.md", "report.html", "sectors.json",
              "hndl_sector_scores.json", "estate_completeness.json",
              "key_inventory.json"}
+
+
+def _git_ignores(name: str) -> bool:
+    """True when git would ignore a path with this name anywhere in the tree.
+
+    Fails closed: if git is unavailable the answer is False, so a missing path
+    is reported rather than silently excused.
+    """
+    # Both forms of every candidate. A pattern written `data/raw/` matches a
+    # directory, and once the directory is gone git cannot tell the path was
+    # one, so the bare form misses exactly in the situation this check exists
+    # for: a clean checkout where the path was never created.
+    candidates = []
+    for prefix in ("", "data/", "docs/"):
+        candidates += [f"{prefix}{name}", f"{prefix}{name}/"]
+    for candidate in candidates:
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(ROOT), "check-ignore", "-q", candidate],
+                capture_output=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            return False
+        if result.returncode == 0:
+            return True
+    return False
 
 
 def _mapped_names() -> set[str]:
@@ -89,6 +128,7 @@ def main() -> int:
 
     drawn_but_absent = sorted(
         name for name in mapped - GENERATED
+        if not _git_ignores(name)
         if not any(p.name == name for p in ROOT.rglob(name)
                    if not (SKIP_PARTS & set(p.relative_to(ROOT).parts)))
     )

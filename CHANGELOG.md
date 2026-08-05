@@ -3,6 +3,30 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.14.3] - 2026-08-05
+
+`lint-layout` failed in CI a second time, on `data/raw`, and the interesting
+part is that the first fix was the wrong kind of fix.
+
+### Fixed
+- **The layout check's exemptions are derived, not enumerated.** v0.14.2 excused
+  `docs/report.md` by adding it to a literal set; the next clean checkout failed
+  on `data/raw`, which is git-ignored and therefore never present. Adding a
+  second literal would have worked until the third. The rule now reads: a drawn
+  path must exist unless git ignores it, which is the same answer sprint 8 gave
+  the hand-maintained disclosure allowlist, and it went unapplied here for two
+  releases.
+- **Directory patterns need their trailing-slash form.** `data/raw/` matches a
+  directory, and once the directory is gone git cannot tell the path was one, so
+  querying the bare `data/raw` misses in exactly the situation the check exists
+  for. Both forms are now tried.
+- A short explicit list survives beside the derived rule, covering generated
+  output whose tracking status differs between clones. Two mechanisms, kept
+  separate so it stays visible which one is doing the work.
+- The regression test built its own repository instead of assuming the
+  surrounding checkout has a `.git` directory, since a test that depends on the
+  state of its environment is the same class of defect it was written to catch.
+
 ## [0.14.2] - 2026-08-05
 
 CI failed on v0.14.1 and was right to. Three defects, one of them in the gate
