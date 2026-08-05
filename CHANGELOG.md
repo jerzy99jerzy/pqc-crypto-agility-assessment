@@ -3,6 +3,60 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.14.0] - 2026-08-05
+
+Every defect detected but not yet fixed, closed in one sprint. Two of them were
+real holes in the structural guard and one of those was found by a type checker
+that had not been running.
+
+### Security
+- **T14: IPv6 literals passed both guards.** Neither host pattern matches a
+  colon-separated address, so a bare or bracketed literal walked through
+  untouched. Closed with candidate nomination plus `ipaddress` validation rather
+  than regex alone: an expression loose enough to catch every valid form also
+  catches clock times, MAC addresses and C++ scope resolution, while one tight
+  enough to avoid them misses compressed forms. Validation is exact by
+  construction - `12:34:56` is rejected because it is not an address, not
+  because a rule was written about times. `::` and `::1` are exempt, because
+  they identify nobody and flagging them would train people to disable the
+  guard.
+- **Byte-string values bypassed the structural walk.** `assert_no_host_identifiers`
+  inspected `str` and recursed into containers, so a `bytes` value was ignored
+  entirely. `NameAttribute.value` is `str | bytes` and `cryptography` returns
+  bytes for encodings it declines to decode, so a certificate subject encoded
+  that way carried host identity into the aggregate. Found by mypy on a return
+  type that did not match its declaration, on the first run after the type
+  checker was added. Fixed on both sides independently: the parser decodes, and
+  the guard treats byte strings as strings, so neither fix depends on the other.
+
+### Added
+- `ruff` and `mypy` in the dev dependencies and in `make verify`, converging
+  with `cve-digest`. 65 lint findings and 12 type findings resolved; the mypy
+  configuration is deliberately not strict, because the value here is catching a
+  `None` or a `bytes` flowing into a branch that assumes otherwise, which the
+  tri-state convention makes the most likely defect shape in this codebase.
+- `ENGINEERING.md`: the portable engineering standard distilled from this
+  repository and its siblings, with every rule traced to the defect that
+  produced it.
+- `docs/DECISIONS.md`: rejected options with their reasoning and, for each, the
+  condition that should reopen it. A decision without a revisit condition
+  becomes a rule nobody remembers the reason for.
+- `tests/test_sprint14.py`: 21 cases covering the IPv6 guard in both directions,
+  the colon-bearing text that must not be flagged, and a test asserting CI still
+  calls the single gate.
+
+### Fixed
+- **CI ran weaker than the local gate.** The workflow listed checks
+  individually, so `lint-spl` and `lint-limitations` were local-only for a day
+  while the Makefile comment claimed "everything CI runs". CI now calls
+  `make verify`. The same class as the stale README claim in 0.13.1, in the
+  build system rather than the documentation.
+- CI gains a Python matrix (3.12 and 3.14, the second being the version
+  development actually happens on), an interpreter-free hygiene job rejecting
+  tracked patch files and absolute developer paths, and a job asserting a
+  pushed tag matches the declared version - which would have caught both of the
+  tag-artefact mismatches this project shipped.
+
 ## [0.13.1] - 2026-08-05
 
 ### Added

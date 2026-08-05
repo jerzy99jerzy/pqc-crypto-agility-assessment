@@ -38,6 +38,7 @@ import logging
 import re
 import sys
 from collections import Counter
+from collections.abc import Sequence
 from pathlib import Path
 
 import yaml
@@ -107,7 +108,7 @@ def compare_versions(a: str, b: str) -> int | None:
     if pa is None or pb is None:
         return None
     # Compare component-wise over the common prefix.
-    for x, y in zip(pa, pb):
+    for x, y in zip(pa, pb, strict=False):
         if x != y:
             return -1 if x < y else 1
     if len(pa) == len(pb):
@@ -186,7 +187,7 @@ def resolve(library: str, version: str, cfg: dict) -> dict:
     }
 
 
-def _column_map(fieldnames: list[str]) -> dict[str, str]:
+def _column_map(fieldnames: Sequence[str]) -> dict[str, str]:
     lowered = {f.lower().strip(): f for f in fieldnames or []}
     out: dict[str, str] = {}
     for key, aliases in COLUMN_ALIASES.items():
@@ -261,7 +262,7 @@ def _finalise(inventory, cfg, rows_total, rows_matched, devices, buckets, unmatc
         device_summary[f["verdict"]] += f["devices"]
 
     payload = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "source_file": Path(inventory).name,
         "config_version": cfg.get("version"),
         "provenance": "measured",

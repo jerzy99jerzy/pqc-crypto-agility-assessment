@@ -13,7 +13,7 @@ PQC algorithm identifiers per:
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from cryptography import x509
@@ -141,8 +141,22 @@ def _signature_dimensions(cert: x509.Certificate) -> tuple[str, str, bool | None
 
 
 def _name_attr(name: x509.Name, oid: x509.ObjectIdentifier) -> str | None:
+    """One name attribute as text, or None.
+
+    `NameAttribute.value` is `str | bytes`; bytes come back for attribute
+    encodings `cryptography` declines to decode. Returning them as-is put a
+    value into a field declared `str | None`, and the disclosure guard
+    inspected strings only, so such a subject travelled through it untouched.
+    Decoding here keeps the record's declared type honest; the guard was
+    hardened in the same sprint so that neither fix depends on the other.
+    """
     values = name.get_attributes_for_oid(oid)
-    return values[0].value if values else None
+    if not values:
+        return None
+    value = values[0].value
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", errors="replace")
+    return value
 
 
 def parse_certificate(data: bytes, milestone: dt.date | None = None) -> CertRecord:
@@ -163,7 +177,7 @@ def parse_certificate(data: bytes, milestone: dt.date | None = None) -> CertReco
         san: list[str] = []
         try:
             ext = cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
-            san = ext.value.get_values_for_type(x509.DNSName)
+            san = ext.value.get_values_for_type(x509.DNSName)  # type: ignore[attr-defined]
         except x509.ExtensionNotFound:
             pass
 

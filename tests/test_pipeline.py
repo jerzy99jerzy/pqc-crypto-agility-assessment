@@ -8,14 +8,9 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import sys
 from pathlib import Path
 
 import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[1]  # for reading source files; path is set in conftest
-
-
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
@@ -25,9 +20,16 @@ from ananke.collectors.certparse import parse_certificate
 from ananke.collectors.store import HostStore, host_key
 from ananke.scoring.hndl_score import load_config, score_subject
 
+# Used to read source files in a test that asserts a property of the code
+# itself; sys.path is set in conftest, so this is not an import prerequisite.
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
-def _make_cert(key, cn: str, days: int, sig_hash=hashes.SHA256()):
-    now = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+
+def _make_cert(key, cn: str, days: int, sig_hash=None):
+    """sig_hash defaults to None and resolves to SHA-256 inside, rather than
+    being constructed once at import time as a shared mutable default."""
+    sig_hash = sig_hash or hashes.SHA256()
+    now = dt.datetime.now(dt.UTC) - dt.timedelta(days=1)
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
     builder = (
         x509.CertificateBuilder()

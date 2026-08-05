@@ -142,7 +142,7 @@ def parse_handshake_output(
     }
     record["pqc_hybrid_negotiated"] = (
         record["negotiated_group"] is not None
-        and "mlkem" in record["negotiated_group"].lower().replace("-", "")
+        and "mlkem" in str(record["negotiated_group"]).lower().replace("-", "")
     )
     if returncode != 0 and record["negotiated_group"] is None:
         record["error"] = "handshake did not complete; see openssl_returncode"
@@ -160,7 +160,7 @@ def probe(host: str, port: int, binary: str, timeout: int, groups: str) -> tuple
         "-state",
         "-brief",
     ]
-    started = dt.datetime.now(dt.timezone.utc)
+    started = dt.datetime.now(dt.UTC)
     try:  # pragma: no cover - needs a live OpenSSL 3.5 client, unavailable offline
         proc = subprocess.run(
             cmd, input="Q\n", capture_output=True, text=True, timeout=timeout
@@ -233,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     payload = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "environment": env,
         "scope_statement": (
             "Targets restricted to operator-owned infrastructure and public reference "

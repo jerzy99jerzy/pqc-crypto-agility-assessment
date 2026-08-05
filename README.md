@@ -363,6 +363,7 @@ pqc-crypto-agility-assessment/
 │   ├── MECHANISMS.md    #   how each mechanism works
 │   ├── MVP.md           #   release criteria per audience, definition of done
 │   ├── THREAT-MODEL.md  #   adversaries against the guard and the number
+│   ├── DECISIONS.md     #   rejected options, and what would reopen each
 │   └── report.md        #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
@@ -380,6 +381,7 @@ pqc-crypto-agility-assessment/
 ├── LICENSE                   # AGPL-3.0-only
 ├── NOTICE                    # third-party components and data sources
 ├── SECURITY.md               # reporting a defect in the guard
+├── ENGINEERING.md            # portable standard, every rule traced to a defect
 ├── LICENSING.md              # dual-license terms
 ├── CHANGELOG.md
 ├── TODO.md                   # open items, each with an acceptance test
@@ -637,6 +639,15 @@ operator-supplied key management export into counts, keeping wrapping and
 signing keys on separate clocks and counting symmetric keys explicitly out of
 scope. The counter worth reading first is the number of keys with no expiry
 set: nobody planned to rotate them, so nobody planned to migrate them.
+
+Sprint 14: the outstanding detections closed. IPv6 literals passed both guards
+and now do not, resolved by nominating candidates with a pattern and letting
+`ipaddress` decide, which is exact where a regex would have to guess about clock
+times and MAC addresses. Byte-string values bypassed the structural walk
+entirely, found by a type checker on its first run after thirteen sprints
+without one. `ruff` and `mypy` joined the gate, and CI now calls `make verify`
+rather than restating its steps, which is how two lints came to be local-only
+for a day.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test. What *finished* means, which is a separate question,

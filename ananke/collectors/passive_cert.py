@@ -32,29 +32,28 @@ from pathlib import Path
 import yaml
 
 try:  # allow both `python -m collectors.passive_cert` and direct execution
-    from ananke.collectors.certparse import parse_certificate
+    from ananke.collectors.certparse import parse_certificate  # noqa: F401  (import probe)
     from ananke.collectors.crtsh import CrtShClient, RateLimiter
     from ananke.collectors.disclosure import (
-    HOSTNAME_RE,
-    DisclosureViolation,
-    assert_bucket_sizes,
-    assert_no_host_identifiers,
-)
+        HOSTNAME_RE,
+        DisclosureViolation,
+        assert_bucket_sizes,
+        assert_no_host_identifiers,
+    )
     from ananke.collectors.sources import CertificateSource, CrtShSource, LocalPemSource
-    from ananke.config import load_milestone
     from ananke.collectors.store import HostStore, write_json_atomic
+    from ananke.config import load_milestone
 except ImportError:  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from ananke.collectors.certparse import parse_certificate
     from ananke.collectors.crtsh import CrtShClient, RateLimiter
     from ananke.collectors.disclosure import (
-    DisclosureViolation,
-    assert_bucket_sizes,
-    assert_no_host_identifiers,
-)
+        DisclosureViolation,
+        assert_bucket_sizes,
+        assert_no_host_identifiers,
+    )
     from ananke.collectors.sources import CertificateSource, CrtShSource, LocalPemSource
-    from ananke.config import load_milestone
     from ananke.collectors.store import HostStore, write_json_atomic
+    from ananke.config import load_milestone
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = REPO_ROOT / "data" / "raw" / "certs"
@@ -248,7 +247,7 @@ def aggregate(min_bucket: int, milestone: dt.date | None = None) -> Path:
         emitted[sector]["rotation_stats"] = stats
 
     payload = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "modality": modality,
         "provenance": provenance,
         "milestone": {"date": milestone.isoformat(),
@@ -282,7 +281,13 @@ def aggregate(min_bucket: int, milestone: dt.date | None = None) -> Path:
             validate_sector(name)
         except SectorLabelError as exc:
             raise DisclosureViolation(str(exc)) from exc
-    assert_bucket_sizes({s: a["hosts_observed"] for s, a in emitted.items()}, effective_min)
+    # `emitted` holds counters and ints side by side; hosts_observed is an int by
+    # construction and the cast documents that rather than hiding a union.
+    bucket_sizes: dict[str, int] = {
+        name: int(agg["hosts_observed"])  # type: ignore[arg-type]
+        for name, agg in emitted.items()
+    }
+    assert_bucket_sizes(bucket_sizes, effective_min)
     assert_no_host_identifiers(payload)
 
     out = AGG_DIR / "sectors.json"

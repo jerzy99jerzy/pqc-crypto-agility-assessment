@@ -190,7 +190,7 @@ is answered in `docs/MVP.md`, not here.
 ---
 
 ### T14 IPv6 literals bypass the disclosure guard
-- Status: `ready`
+- Status: `done` (sprint 14)
 - Found in the threat-model v2.0 review. `HOSTNAME_RE` and `IPV4_RE` cover
   named hosts and dotted-quad addresses; a bare or bracketed IPv6 literal
   (`2a00:1450:401b:80c::200e`) matches neither and passes both guards.
@@ -246,6 +246,7 @@ is answered in `docs/MVP.md`, not here.
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
 - Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/MECHANISMS.md`, coverage floor 65 -> 70 (sprint 6)
 - NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)
+- IPv6 literals closed in both guards via candidate-plus-validation rather than regex alone; byte-string values no longer bypass the structural walk; ruff and mypy in the gate (T14, sprint 14)
 - At-rest key inventory as a `reported` source: wrapping and signing keys counted on separate clocks, symmetric counted and excluded from scope, no-expiry surfaced as the agility finding; README's at-rest claim corrected to four layers (T17, sprint 13)
 - Cross-check of a reported estate against its public CT footprint: asymmetric by design (publicly logged and undeclared is a finding, declared and not publicly logged is not), counts only, blind spot stated rather than implied (T12, sprint 12)
 - SPL detection pack alongside KQL, with a structural discipline lint in `make verify` (sprint 12)

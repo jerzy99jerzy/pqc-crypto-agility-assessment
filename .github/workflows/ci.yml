@@ -5,28 +5,45 @@ on:
   pull_request:
 
 jobs:
+  # One gate. CI calls `make verify` rather than restating its steps, because a
+  # workflow that lists them separately drifts the moment a check is added to
+  # the Makefile: `lint-spl` and `lint-limitations` were local-only for a full
+  # day exactly that way. If it is not in `verify`, it does not run anywhere.
   verify:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-
+          python-version: ${{ matrix.python-version }}
       - name: Install
+        run: pip install -e ".[dev]"
+      - name: Verify
+        run: make verify
+
+  # Cheap checks that need no interpreter. Borrowed from cve-digest, where the
+  # same two things had already gone wrong once.
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: No tracked patch files
         run: |
-          pip install -e ".[dev]"
-
-      - name: Unit tests with coverage floor
-        run: python -m pytest --cov
-
-      - name: Sigma pack structure
-        run: python tests/validate_sigma.py
-
-      # Fails the build if a horizon edit reintroduces component saturation.
-      - name: Scoring config validation
-        run: pqc-score --validate-config
-
-      # Fails the build if a host identifier reaches a committed artefact.
-      - name: Disclosure lint
-        run: python tests/lint_disclosure.py
+          if git ls-files '*.patch' '*.diff' | grep .; then
+            echo "patch artefacts are transfer files, not repository contents"; exit 1
+          fi
+      - name: No host-specific paths
+        run: |
+          if git grep -nE '/(Users|home)/[a-z0-9._-]+/' -- ':!*.md' ':!.github'; then
+            echo "absolute developer paths do not belong in tracked source"; exit 1
+          fi
+      - name: Tag matches version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          decl=$(grep -m1 '^version' pyproject.toml | cut -d'"' -f2)
+          [ "$tag" = "$decl" ] || { echo "tag v$tag != pyproject $decl"; exit 1; }

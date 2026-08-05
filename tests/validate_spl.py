@@ -49,7 +49,7 @@ def check(path: Path) -> list[str]:
     # file flagged this repository's own comment warning against the
     # anti-pattern, which is the classic way a linter teaches people to stop
     # documenting the thing it checks for.
-    body = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("*"))
+    body = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("*"))
 
     if HARDCODED_MILESTONE.search(body) and not MACRO_MILESTONE.search(body):
         problems.append("milestone date hard-coded; use the `pqc_milestone` macro")

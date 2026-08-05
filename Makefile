@@ -33,6 +33,10 @@ test:            ## unit tests, no network
 coverage:        ## unit tests with coverage, enforces the floor in pyproject.toml
 	python -m pytest --cov
 
+lint:            ## style and types; SKIPs with a note if not installed
+	@command -v ruff >/dev/null && ruff check . || echo "SKIP ruff (pip install -e '.[dev]')"
+	@command -v mypy >/dev/null && mypy ananke || echo "SKIP mypy (pip install -e '.[dev]')"
+
 lint-sigma:      ## structural validation of the Sigma pack (needs pysigma)
 	python tests/validate_sigma.py
 
@@ -48,4 +52,4 @@ lint-disclosure: ## scan committed artefacts for host identifiers
 validate:        ## scoring config: saturation, floors, weights, bands
 	pqc-score --validate-config
 
-verify: coverage lint-sigma lint-spl validate lint-limitations lint-disclosure  ## everything CI runs
+verify: coverage lint lint-sigma lint-spl validate lint-limitations lint-disclosure  ## everything CI runs

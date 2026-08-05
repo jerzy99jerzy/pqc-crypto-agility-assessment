@@ -33,21 +33,21 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 try:
     from ananke.collectors.certparse import parse_certificate
-    from ananke.config import load_milestone
     from ananke.collectors.crtsh import CrtShClient, select_current_leaves
+    from ananke.config import load_milestone
 except ImportError:  # pragma: no cover
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from ananke.collectors.certparse import parse_certificate
-    from ananke.config import load_milestone
     from ananke.collectors.crtsh import CrtShClient, select_current_leaves
+    from ananke.config import load_milestone
 
 log = logging.getLogger("sources")
 
@@ -88,7 +88,7 @@ def validate_sector(label: str) -> str:
 
 
 def _now() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
+    return dt.datetime.now(dt.UTC).isoformat()
 
 
 @runtime_checkable
@@ -121,7 +121,7 @@ class CrtShSource:
         targets: dict[str, list[str]],
         client: CrtShClient,
         leaves: int = 2,
-        skip: object = None,
+        skip: Callable[[str], bool] | None = None,
         milestone=None,
     ) -> None:
         self.targets = targets
@@ -144,7 +144,7 @@ class CrtShSource:
                 yield self._collect_host(host, sector)
 
     def _collect_host(self, host: str, sector: str) -> dict:
-        record = {
+        record: dict[str, Any] = {
             "host": host,
             "sector": sector,
             "collected_at": _now(),
@@ -219,7 +219,7 @@ class LocalPemSource:
             parsed = parse_certificate(raw, milestone=self.milestone)
             d = parsed.to_dict()
             host = self._host_for(d, path)
-            record = by_host.setdefault(host, {
+            record: dict[str, Any] = by_host.setdefault(host, {
                 "host": host,
                 "sector": self.sector,
                 "collected_at": _now(),

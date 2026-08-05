@@ -2,7 +2,8 @@
 
 Project codename: ANANKE. See `README.md` for the naming convention.
 
-Version 13.0, 2026-08-05. Sprint 13: at-rest key inventory, and the four-layer correction to what at rest means.
+Version 14.0, 2026-08-05. Sprint 14: IPv6 and byte-string gaps in the structural guard, static analysis in the gate, CI drift corrected.
+Sprint 13: Sprint 13: at-rest key inventory, and the four-layer correction to what at rest means.
 Sprint 12: Sprint 12: estate cross-check against the public CT record, SPL detection pack.
 Sprint 11: Sprint 11: configurable milestone, decision layer in the aggregate, HTML rendering through the same guard.
 Sprint 10: Sprint 10: portfolio consistency, single package namespace, threat model, adversarial fixtures.
@@ -376,6 +377,21 @@ alphabetic final label, so a dotted quad passed through the structural guard
 into anything destined for `data/aggregates/`. The guard had been described as
 enforcement of the scope statement for five sprints while missing a whole class
 of host identifier.
+
+### 9.2c Sprint 14: the checker that was not running
+
+Adding `mypy` to the gate produced twelve findings in the first run, eleven of
+which were narrowing gaps worth annotating and one of which was a live guard
+bypass: `_name_attr` declared `str | None` and could return `bytes`, and the
+structural walk inspected `str` only. A subject encoded in a form `cryptography`
+declines to decode therefore travelled through the guard untouched.
+
+Worth stating plainly, because it is the argument for static analysis on this
+particular codebase rather than in general: the defects this project cannot
+afford are the silent ones, and a type that does not match its declaration is
+exactly the shape a silent defect takes. Three code reviews and an adversarial
+fixture suite had not found it. The checker found it on its first run, in a
+codebase that had been running without one for thirteen sprints.
 
 ### 9.2b Sprint 13: a claim is a test, not a sentence
 

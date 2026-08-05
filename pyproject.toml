@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pqc-crypto-agility-assessment"
-version = "0.13.1"
+version = "0.14.0"
 description = "Repeatable PQC inventory pipeline: passive CT, HNDL scoring, Sigma/KQL detection, capability resolution"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,6 +19,8 @@ dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "pysigma>=0.11",
+    "ruff>=0.6",
+    "mypy>=1.11",
 ]
 
 # Console scripts remove the need to invoke modules by path. After
@@ -82,3 +84,22 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "raise SystemExit",
 ]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# E501 is handled by line-length; the rest is the default set plus import order.
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+# Deliberately not strict. The value here is catching a None flowing into a
+# branch that assumes a value - the tri-state convention makes that the most
+# likely defect shape in this codebase - not annotating every helper.
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true

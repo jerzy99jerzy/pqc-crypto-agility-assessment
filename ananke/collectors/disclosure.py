@@ -20,6 +20,7 @@ Two checks:
 
 from __future__ import annotations
 
+import ipaddress
 import re
 import subprocess
 from functools import lru_cache
@@ -70,6 +71,47 @@ IPV4_RE = re.compile(
     r"(?<![0-9.])(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}"
     r"(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(?![0-9])"
 )
+
+# IPv6, closing T14. Neither host pattern nor IPV4_RE matches a colon-separated
+# address, so a bare or bracketed literal walked through both guards until now.
+#
+# Regex alone is the wrong tool here: an expression loose enough to catch every
+# valid form also catches clock times, MAC addresses and C++ scope resolution,
+# and one tight enough to avoid them misses compressed forms. So the pattern
+# only nominates candidates and `ipaddress` decides. That is exact by
+# construction: `12:34:56` is not a valid address and is rejected without any
+# heuristic about what a time looks like.
+#
+# The lookarounds stop a candidate starting mid-token, which is what keeps
+# `std::vector` out: `s` is not a hex digit, and `d::` cannot start because the
+# preceding character is a letter.
+_IPV6_CANDIDATE_RE = re.compile(
+    r"(?<![0-9a-z:.])\[?([0-9a-f:]{2,45}(?:%[0-9a-z_.-]{1,32})?)\]?(?![0-9a-z:.])",
+    re.IGNORECASE,
+)
+
+# Addresses that identify nobody. The unspecified address and loopback appear in
+# configuration and documentation constantly, and flagging them would train
+# people to disable the guard - the one outcome worse than a narrow exemption.
+_IPV6_IDENTIFIES_NOBODY = {"::", "::1"}
+
+
+def find_ipv6(text: str) -> list[str]:
+    """Return IPv6 literals in `text`, validated rather than pattern-guessed."""
+    found = []
+    for candidate in _IPV6_CANDIDATE_RE.findall(text):
+        addr = candidate.split("%", 1)[0]
+        if ":" not in addr:
+            continue
+        try:
+            parsed = ipaddress.IPv6Address(addr)
+        except ValueError:
+            continue
+        if str(parsed) in _IPV6_IDENTIFIES_NOBODY:
+            continue
+        found.append(candidate)
+    return found
+
 
 # File extensions that cannot be confused with a top-level domain, so a token
 # ending in one is a filename rather than a host.
@@ -235,12 +277,25 @@ def assert_no_host_identifiers(payload: Any, path: str = "$") -> None:
     elif isinstance(payload, (list, tuple)):
         for i, value in enumerate(payload):
             assert_no_host_identifiers(value, f"{path}[{i}]")
+    elif isinstance(payload, (bytes, bytearray)):
+        # X.509 name attributes are `str | bytes`: `cryptography` hands back
+        # bytes when the attribute uses an encoding it will not decode. Until
+        # sprint 14 the walk inspected `str` only, so a subject encoded that way
+        # carried host identity through the guard untouched. Found by mypy, on
+        # a return type that did not match its declaration - which is the whole
+        # argument for running a type checker on a codebase whose failures are
+        # silent rather than loud.
+        assert_no_host_identifiers(
+            bytes(payload).decode("utf-8", errors="replace"), path)
     elif isinstance(payload, str):
         for match in HOSTNAME_RE.findall(payload):
             if not _is_allowed(match):
                 raise DisclosureViolation(
                     f"{path}: string looks like a hostname: {match!r}"
                 )
+        for match in find_ipv6(payload):
+            raise DisclosureViolation(
+                f"IPv6 literal in a committed payload: {match!r}")
         for match in IPV4_RE.findall(payload):
             raise DisclosureViolation(
                 f"{path}: string contains an IPv4 literal: {match!r}"
@@ -286,6 +341,7 @@ def scan_text(
         m for m in HOSTNAME_RE.findall(text)
         if not _is_allowed(m, extra_allowed, repo_files=True)
     ]
+    found += find_ipv6(text)
     found += [m for m in IPV4_RE.findall(text)
               if not (extra_allowed and m in extra_allowed)]
     return found

@@ -15,7 +15,8 @@ Two invariants carry the sprint:
 
 2. Minimum bucket size may be relaxed only for a first-party estate, and only
    because a source said so. Suppression exists to stop a third party being
-   identified through a sector of one; a paying operator has nobody to be
+   identified through a sector of one
+   a paying operator has nobody to be
    protected from. There is deliberately no flag that turns it off for CT data,
    and `test_no_argument_relaxes_suppression_for_ct_data` is the guard on that.
 """
@@ -36,7 +37,7 @@ from ananke.collectors.sources import CrtShSource, LocalPemSource
 
 def _cert(cn: str | None, sans: list[str] | None = None, days: int = 365) -> bytes:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    now = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    now = dt.datetime.now(dt.UTC) - dt.timedelta(days=1)
     attrs = [x509.NameAttribute(NameOID.COMMON_NAME, cn)] if cn else []
     name = x509.Name(attrs)
     builder = (
@@ -55,8 +56,10 @@ def _cert(cn: str | None, sans: list[str] | None = None, days: int = 365) -> byt
 
 
 def _store(tmp_path, monkeypatch):
-    raw = tmp_path / "raw"; raw.mkdir()
-    agg = tmp_path / "agg"; agg.mkdir()
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    agg = tmp_path / "agg"
+    agg.mkdir()
     monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
     monkeypatch.setattr(passive_cert, "AGG_DIR", agg)
     return raw
@@ -123,7 +126,8 @@ def test_non_certificate_files_are_ignored(tmp_path):
 
 
 def test_source_provenance_is_reported_but_the_certificate_stays_measured(tmp_path):
-    """The client asserts the set is complete; we still parse each file
+    """The client asserts the set is complete
+    we still parse each file
     ourselves, so the fields are measured and the set is not."""
     (tmp_path / "a.pem").write_bytes(_cert("gw.operator.test"))
     src = LocalPemSource(tmp_path, "logistics")

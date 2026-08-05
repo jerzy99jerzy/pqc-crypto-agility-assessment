@@ -11,7 +11,8 @@ Three properties carry the sprint:
    issuer distribution was the near-miss: on a self-signed certificate the
    issuer IS the subject, so counting issuer CNs walks host identity straight
    into committed output. Caught by the sprint 2 suppression test during
-   development; pinned here.
+   development
+   pinned here.
 3. The HTML renderer escapes at interpolation, embeds dates only, and its
    output passes the disclosure guard with code and data scanned separately:
    script bodies are code and are exempt, string literals inside them are data
@@ -22,8 +23,6 @@ from __future__ import annotations
 import datetime as dt
 import json
 
-import pytest
-
 from ananke.collectors import passive_cert
 from ananke.collectors.passive_cert import aggregate
 from ananke.config import DEFAULT_MILESTONE, load_milestone
@@ -32,8 +31,10 @@ from ananke.reporting.html_report import esc, render_html
 
 
 def _store(tmp_path, monkeypatch):
-    raw = tmp_path / "raw"; raw.mkdir(parents=True, exist_ok=True)
-    agg = tmp_path / "agg"; agg.mkdir(parents=True, exist_ok=True)
+    raw = tmp_path / "raw"
+    raw.mkdir(parents=True, exist_ok=True)
+    agg = tmp_path / "agg"
+    agg.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
     monkeypatch.setattr(passive_cert, "AGG_DIR", agg)
     return raw
@@ -118,7 +119,8 @@ def test_rotation_stats_are_counters_not_hosts(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------- #
 def test_self_signed_issuer_cn_does_not_reach_the_aggregate(tmp_path, monkeypatch):
     """On a self-signed certificate the issuer IS the subject. Counting issuer
-    CNs published host identity; only an organisation name is counted, and a
+    CNs published host identity
+    only an organisation name is counted, and a
     host-shaped one is bucketed as self-signed."""
     raw = _store(tmp_path, monkeypatch)
     passive_cert.HostStore(raw).write(
@@ -203,7 +205,8 @@ def test_strip_active_blocks_keeps_prose_and_drops_code():
 
 
 def test_embedded_data_scan_catches_a_smuggled_host():
-    """Code is repository-reviewed and exempt; data is per-engagement and is
+    """Code is repository-reviewed and exempt
+    data is per-engagement and is
     not. A host identifier inside a string literal in a script must fail."""
     evil = ('<script>const CERTS=[{"nb":"2026-01-01",'
             '"na":"victim-bank.pl"}];</script>')
@@ -214,7 +217,8 @@ def test_embedded_data_scan_catches_a_smuggled_host():
 
 def test_horizon_chart_renders_for_first_party_only():
     """A7: validity date pairs are a quasi-identifier joinable against CT.
-    The per-certificate chart is first-party only; a third-party report gets
+    The per-certificate chart is first-party only
+    a third-party report gets
     counts, never segments."""
     pairs = [{"nb": "2026-01-01", "na": "2033-01-01"}]
 

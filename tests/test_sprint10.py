@@ -44,8 +44,10 @@ def world(tmp_path):
 
 
 def _collect(monkeypatch, tmp_path, pem_dir, sector="logistics"):
-    raw = tmp_path / "raw"; raw.mkdir(parents=True, exist_ok=True)
-    agg = tmp_path / "agg"; agg.mkdir(parents=True, exist_ok=True)
+    raw = tmp_path / "raw"
+    raw.mkdir(parents=True, exist_ok=True)
+    agg = tmp_path / "agg"
+    agg.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
     monkeypatch.setattr(passive_cert, "AGG_DIR", agg)
     passive_cert.collect(LocalPemSource(pem_dir, sector), ttl=0, force=True)
@@ -227,8 +229,10 @@ def test_sector_label_is_shape_validated_not_blocklisted():
 def test_aggregate_independently_refuses_a_hostile_sector_key(tmp_path, monkeypatch):
     """Defense in depth: even a record written by a source that skipped
     validation must not aggregate under a host-shaped sector."""
-    raw = tmp_path / "raw"; raw.mkdir()
-    agg = tmp_path / "agg"; agg.mkdir()
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    agg = tmp_path / "agg"
+    agg.mkdir()
     monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
     monkeypatch.setattr(passive_cert, "AGG_DIR", agg)
     passive_cert.HostStore(raw).write("h1", {
@@ -248,15 +252,17 @@ def test_a_san_longer_than_a_filename_does_not_stop_the_run(tmp_path, monkeypatc
     not, and host identity falls back to SAN. One long name crashed the whole
     collection with OSError before the cap in host_key."""
     import datetime as dt
+
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.x509.oid import NameOID
+
     from ananke.collectors.sources import LocalPemSource
     from ananke.collectors.store import host_key
 
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    now = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    now = dt.datetime.now(dt.UTC) - dt.timedelta(days=1)
     long_san = "a" * 250 + ".example"
     pem = (x509.CertificateBuilder().subject_name(x509.Name([]))
            .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "CA")]))
@@ -267,7 +273,9 @@ def test_a_san_longer_than_a_filename_does_not_stop_the_run(tmp_path, monkeypatc
            .sign(key, hashes.SHA256())).public_bytes(serialization.Encoding.PEM)
     (tmp_path / "long.pem").write_bytes(pem)
 
-    raw = tmp_path / "raw"; raw.mkdir()
+    raw = tmp_path / "raw"
+
+    raw.mkdir()
     monkeypatch.setattr(passive_cert, "RAW_DIR", raw)
     passive_cert.collect(LocalPemSource(tmp_path, "logistics"), ttl=0, force=True)
 

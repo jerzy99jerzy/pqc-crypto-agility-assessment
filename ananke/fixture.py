@@ -28,10 +28,12 @@ import argparse
 import datetime as dt
 import logging
 from pathlib import Path
+from typing import Any
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
+from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 from cryptography.x509.oid import NameOID
 
 log = logging.getLogger("fixture")
@@ -41,9 +43,10 @@ WORLDS = ("clean", "partial", "hostile")
 
 def _make(cn: str | None, days: int, algorithm: str = "rsa2048",
           sans: list[str] | None = None) -> bytes:
+    key: PrivateKeyTypes
     if algorithm == "rsa2048":
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        sig: hashes.HashAlgorithm | None = hashes.SHA256()
+        sig: Any = hashes.SHA256()
     elif algorithm == "rsa4096":
         key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
         sig = hashes.SHA256()
@@ -56,7 +59,7 @@ def _make(cn: str | None, days: int, algorithm: str = "rsa2048",
     else:  # pragma: no cover - guarded by argparse choices upstream
         raise ValueError(algorithm)
 
-    now = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    now = dt.datetime.now(dt.UTC) - dt.timedelta(days=1)
     attrs = [x509.NameAttribute(NameOID.COMMON_NAME, cn)] if cn else []
     builder = (
         x509.CertificateBuilder()
