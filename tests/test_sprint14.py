@@ -95,3 +95,33 @@ def test_ci_runs_everything_the_local_gate_runs():
     for target in ("coverage", "lint-sigma", "lint-spl", "lint-limitations",
                    "lint-disclosure"):
         assert target in verify_line, f"{target} missing from the single gate"
+
+
+def test_the_repository_map_is_checked_by_the_gate():
+    """The map went stale for four sprints after the namespace refactor and was
+    caught by a reader. The instance is fixed in the README; this asserts the
+    class is closed, which is the part that matters."""
+    from pathlib import Path
+
+    makefile = (Path(__file__).resolve().parents[1] / "Makefile").read_text(encoding="utf-8")
+    verify_line = next(line for line in makefile.splitlines() if line.startswith("verify:"))
+    assert "lint-layout" in verify_line
+
+
+def test_layout_lint_catches_drift_in_both_directions(tmp_path, monkeypatch):
+    """A path drawn but absent, and a path present but undrawn. Either alone
+    would let half the class through."""
+    import tests.lint_layout as lint
+
+    monkeypatch.setattr(lint, "ROOT", tmp_path)
+    monkeypatch.setattr(lint, "README", tmp_path / "README.md")
+    (tmp_path / "ananke").mkdir()
+    (tmp_path / "ananke" / "real.py").write_text("", encoding="utf-8")
+    (tmp_path / "README.md").write_text(
+        "```\npqc-crypto-agility-assessment/\n"
+        "├── ananke/\n│   └── imaginary.py\n```\n", encoding="utf-8")
+
+    mapped = lint._mapped_names()
+    expected = lint._expected_names()
+    assert "imaginary.py" in mapped and "imaginary.py" not in expected
+    assert "real.py" in expected and "real.py" not in mapped

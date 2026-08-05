@@ -46,10 +46,13 @@ lint-spl:        ## structural discipline checks over the SPL pack
 lint-limitations: ## check the limitations section against the tree
 	python tests/lint_limitations.py
 
+lint-layout:     ## the README repository map, checked against the tree
+	python tests/lint_layout.py
+
 lint-disclosure: ## scan committed artefacts for host identifiers
 	python tests/lint_disclosure.py
 
 validate:        ## scoring config: saturation, floors, weights, bands
 	pqc-score --validate-config
 
-verify: coverage lint lint-sigma lint-spl validate lint-limitations lint-disclosure  ## everything CI runs
+verify: coverage lint lint-sigma lint-spl validate lint-limitations lint-layout lint-disclosure  ## everything CI runs

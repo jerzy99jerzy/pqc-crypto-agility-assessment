@@ -55,6 +55,10 @@ appeared. A claim genuinely unprovable by pattern carries a `note` explaining
 why it is reviewed by hand. Silence is not permitted: the failure mode this
 guards against is precisely a true-sounding sentence nobody checked.
 
+The same treatment now covers the repository map (`make lint-layout`) and the
+assertion that CI calls the single gate, after all three went stale in the same
+week and all three were caught by a reader rather than by a review.
+
 The principle generalises past this one section. Where the repository makes a
 claim about itself that a reader relies on - a scope boundary, a provenance
 label, an enforced invariant - prefer to make it executable. A sentence drifts

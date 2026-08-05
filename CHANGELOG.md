@@ -3,6 +3,30 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.14.1] - 2026-08-05
+
+### Fixed
+- **The repository map in `README.md` had been stale for four sprints.** It
+  still drew `collectors/`, `active/`, `scoring/`, `inventory/` and
+  `reporting/` as top-level packages after v0.10.0 moved them under `ananke/`,
+  and it omitted eight files added since, including `config.py`, `fixture.py`,
+  `html_report.py` and six test modules. Found by a reader asking whether it was
+  current, which is the same way the stale limitations claim was found in
+  v0.13.1 and the same way the CI drift was found in v0.14.0. Three separate
+  instances of one class: documentation describing a state the tree left behind.
+
+### Added
+- **`make lint-layout`**, in `verify`. Checks the map in both directions: a path
+  drawn but absent fails, a path present but undrawn fails. `__init__.py` is
+  excluded as structural rather than navigational, and the leaves of
+  `detection/`, `config/` and `data/` are represented by their directories,
+  which the check knows about explicitly rather than by accident. Verified by
+  renaming an entry in the map and confirming both failure directions fire.
+
+This is the third executable check over the repository's description of itself,
+after the limitations registry and the CI-calls-the-gate assertion. The pattern
+is now the default response to this class rather than a reaction to it.
+
 ## [0.14.0] - 2026-08-05
 
 Every defect detected but not yet fixed, closed in one sprint. Two of them were

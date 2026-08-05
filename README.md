@@ -326,67 +326,85 @@ sector aggregation was supposed to protect.
 
 ```
 pqc-crypto-agility-assessment/
-├── collectors/
-│   ├── sources.py       #   source seam: CT, offline PEM, and the regime each implies
-│   ├── crosscheck.py    #   reported estate vs public CT footprint, counts only
-│   ├── keys.py          #   at-rest key inventory: the wrapping layer, counts only          # Modality A: passive, third-party, public data only
-│   ├── crtsh.py         #   CT client, rate limited, backoff, retry
-│   ├── certparse.py     #   X.509 dimension extraction, PQC OID aware
-│   ├── store.py         #   idempotent per-host store, atomic writes
-│   ├── disclosure.py    #   scope statement as an executable guard
-│   ├── select_targets.py#   ranking -> targets + committed selection manifest
-│   └── passive_cert.py  #   CLI: collect, then aggregate to sector level
-├── active/
-│   └── handshake_demo.py# Modality B: allowlisted targets only, preflight gated
-├── scoring/
-│   ├── hndl_score.py    #   scoring engine, no hardcoded constants
-│   └── weights.yaml     #   weights, sector horizons, thresholds, assumptions
-├── inventory/
-│   └── pqc_capability.py#   software inventory -> capability verdicts, version aware
-├── reporting/
-│   └── build_report.py  #   aggregates -> docs/report.md, cannot read raw data
+├── ananke/                   # one namespace; five generic top-level packages
+│   │                         # were collision candidates on every install
+│   ├── config.py             #   the configured milestone, read in one place
+│   ├── fixture.py            #   synthetic estates: clean, partial, hostile
+│   ├── collectors/           # Modality A passive, D offline, E key inventory
+│   │   ├── sources.py        #     source seam: CT, offline PEM, and the regime each implies
+│   │   ├── crtsh.py          #     CT client, rate limited, backoff, retry
+│   │   ├── certparse.py      #     X.509 dimension extraction, PQC OID aware, never raises
+│   │   ├── store.py          #     idempotent per-host store, atomic writes, TTL
+│   │   ├── disclosure.py     #     scope statement as an executable guard
+│   │   ├── select_targets.py #     ranking -> targets + committed selection manifest
+│   │   ├── crosscheck.py     #     reported estate vs public CT footprint, counts only
+│   │   ├── keys.py           #     at-rest key inventory: the wrapping layer, counts only
+│   │   └── passive_cert.py   #     CLI: collect, then aggregate to sector level
+│   ├── active/
+│   │   └── handshake_demo.py # Modality B: allowlisted targets only, preflight gated
+│   ├── scoring/
+│   │   ├── hndl_score.py     #   scoring engine, no hardcoded constants
+│   │   └── weights.yaml      #   milestone, weights, sector horizons, assumptions
+│   ├── inventory/
+│   │   └── pqc_capability.py #   software inventory -> capability verdicts, version aware
+│   └── reporting/
+│       ├── build_report.py   #   aggregates -> docs/report.md, cannot read raw data
+│       └── html_report.py    #   single file, no network, chart gated to first-party
 ├── detection/
-│   ├── spl/             #   Splunk searches, same questions as the KQL set
-│   ├── sigma/           #   Zeek and Windows inventory rules
-│   └── kql/             #   Defender, Sentinel, Resource Graph queries
+│   ├── sigma/                #   Zeek and Windows inventory rules
+│   ├── kql/                  #   Defender, Sentinel, Resource Graph queries
+│   └── spl/                  #   Splunk searches, same questions as the KQL set
 ├── config/
 │   ├── targets.example.yaml
 │   ├── classification.yaml   # sector rules, hashed into the manifest
 │   ├── pqc_capability.yaml   # library thresholds, provenance-labelled
 │   └── reference_hosts.yaml  # active-probe allowlist
 ├── data/
-│   ├── raw/             #   host level, git-ignored
-│   └── aggregates/      #   sector level, committed
+│   ├── raw/                  #   host level, git-ignored, never committed
+│   └── aggregates/           #   sector level, counts only, committed
 ├── docs/
-│   ├── ARCHITECTURE.md  #   what talks to what, block index
-│   ├── METHODOLOGY.md
-│   ├── MECHANISMS.md    #   how each mechanism works
-│   ├── MVP.md           #   release criteria per audience, definition of done
-│   ├── THREAT-MODEL.md  #   adversaries against the guard and the number
-│   ├── DECISIONS.md     #   rejected options, and what would reopen each
-│   └── report.md        #   generated
+│   ├── ARCHITECTURE.md       #   what talks to what, block index
+│   ├── METHODOLOGY.md        #   what may be claimed, plus the defect log
+│   ├── MECHANISMS.md         #   how each mechanism works
+│   ├── MVP.md                #   release criteria per audience, definition of done
+│   ├── THREAT-MODEL.md       #   adversaries against the guard and the number
+│   ├── DECISIONS.md          #   rejected options, and what would reopen each
+│   └── report.md             #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
 │   ├── fixtures/             # synthetic handshake transcripts, labelled as such
-│   ├── test_pipeline.py
-│   ├── test_sprint2.py
+│   ├── test_pipeline.py      # behaviour by area
 │   ├── test_collection.py
 │   ├── test_capability.py
 │   ├── test_handshake.py
-│   ├── test_sprint6.py       # correctness fixes, regression against 0.5.0
-│   ├── test_sprint7.py       # NSS / LibreSSL thresholds, sourced negative
-│   ├── test_sprint8.py       # disclosure guard boundaries, derived allowlist
-│   ├── validate_sigma.py
-│   └── lint_disclosure.py
-├── LICENSE                   # AGPL-3.0-only
-├── NOTICE                    # third-party components and data sources
-├── SECURITY.md               # reporting a defect in the guard
+│   ├── test_sprint2.py       # regression, one file per sprint
+│   ├── test_sprint6.py       #   correctness fixes F1-F3, regression against 0.5.0
+│   ├── test_sprint7.py       #   NSS / LibreSSL thresholds, sourced negative
+│   ├── test_sprint8.py       #   disclosure guard boundaries, derived allowlist
+│   ├── test_sprint9.py       #   source seam, first-party regime
+│   ├── test_sprint10.py      #   adversarial estates, sector label validation
+│   ├── test_sprint11.py      #   configurable milestone, decision layer, HTML
+│   ├── test_sprint12.py      #   cross-check asymmetry, SPL discipline
+│   ├── test_sprint13.py      #   at-rest keys, two clocks
+│   ├── test_sprint14.py      #   IPv6 and byte-string guard bypasses
+│   ├── validate_sigma.py     # executable checks on the repo itself
+│   ├── validate_spl.py
+│   ├── lint_disclosure.py
+│   ├── lint_limitations.py
+│   └── lint_layout.py
+├── README.md
 ├── ENGINEERING.md            # portable standard, every rule traced to a defect
+├── CONTRIBUTING.md           # invariants a contributor must not break
+├── SECURITY.md               # reporting a defect in the guard
+├── LICENSE                   # AGPL-3.0-only
 ├── LICENSING.md              # dual-license terms
+├── NOTICE                    # third-party components and data sources
 ├── CHANGELOG.md
 ├── TODO.md                   # open items, each with an acceptance test
-├── pyproject.toml            # installable, console scripts, coverage config
-└── .github/workflows/ci.yml
+├── Makefile                  # `make verify` is the only gate anyone needs
+├── pyproject.toml            # installable, console scripts, ruff, mypy, coverage
+├── requirements.txt          # mirrors pyproject; pyproject is the source of truth
+└── .github/workflows/ci.yml  # calls `make verify`, plus hygiene and tag checks
 ```
 
 The separation between `collectors/` and `active/` is load bearing. Targets are
