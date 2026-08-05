@@ -46,9 +46,9 @@ def _unknown_algorithm_certificate() -> bytes:
     case under test. The bytes only need to parse far enough for the OIDs to be
     read; that is what the code path being tested does.
     """
+    from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography import x509
     from cryptography.x509.oid import NameOID
 
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)

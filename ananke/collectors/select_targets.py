@@ -139,7 +139,7 @@ def select(ranking: Path, rules_path: Path, suffix: str | None, top: int | None,
     undersized = sorted(s for s, n in counts.items() if n < min_bucket)
 
     manifest = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "provenance": "measured",
         "source": {
             "file_name": ranking.name,

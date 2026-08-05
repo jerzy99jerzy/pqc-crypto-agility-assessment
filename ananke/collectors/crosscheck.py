@@ -105,7 +105,7 @@ def compare(reported: set[str], public: set[str]) -> dict:
 
 def run(reported_store: Path, public_store: Path, out: Path) -> dict:
     payload = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "check": "estate_completeness",
         "provenance": "measured",
         "provenance_note": "the comparison is measured; what it bounds is the "

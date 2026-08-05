@@ -3,6 +3,37 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.14.2] - 2026-08-05
+
+CI failed on v0.14.1 and was right to. Three defects, one of them in the gate
+itself, and the first time continuous integration caught something the local
+run had let through - which it could only do because v0.14.0 made it call
+`make verify` instead of restating the steps.
+
+### Fixed
+- **`make lint` was incapable of failing.** The recipe used
+  `command -v ruff && ruff check . || echo SKIP`, and `A && B || C` returns C's
+  status, so a real lint error printed "SKIP" and the target exited zero. This
+  is absence read as success, in the target written to prevent exactly that, and
+  it shipped in the same sprint that added the target. Replaced with
+  `if/then/else`, which propagates the exit code; verified by substituting a
+  `ruff` that returns 1 and confirming the target now fails.
+- **`lint-layout` failed on a clean checkout.** The map draws `docs/report.md`,
+  which is generated and therefore absent until something generates it. The
+  check called that drift. Generated artefacts are now exempt from the
+  drawn-but-absent direction, listed explicitly rather than inferred, and the
+  fix was verified by hiding the file and re-running.
+- Twenty-four `ruff` findings that were fixed locally but never transferred.
+
+### Changed
+- **The manifest is now derived from the tree, not from a hand-picked list.**
+  `shasum -c` passed on v0.14.1 while the transfer was still incomplete,
+  because a manifest over a chosen set of files verifies that those files
+  arrived intact and says nothing about whether the set was sufficient. Thirteen
+  files touched by `ruff --fix` were outside it. The control was answering a
+  narrower question than the one it appeared to answer, which is its own small
+  lesson about verification.
+
 ## [0.14.1] - 2026-08-05
 
 ### Fixed

@@ -8,10 +8,6 @@ the provenance disclaimer on the fixtures.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-
 from ananke.active.handshake_demo import parse_handshake_output  # noqa: E402
 from tests.fixtures import handshake_transcripts as fx  # noqa: E402
 

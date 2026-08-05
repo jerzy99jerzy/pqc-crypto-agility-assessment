@@ -33,9 +33,15 @@ test:            ## unit tests, no network
 coverage:        ## unit tests with coverage, enforces the floor in pyproject.toml
 	python -m pytest --cov
 
-lint:            ## style and types; SKIPs with a note if not installed
-	@command -v ruff >/dev/null && ruff check . || echo "SKIP ruff (pip install -e '.[dev]')"
-	@command -v mypy >/dev/null && mypy ananke || echo "SKIP mypy (pip install -e '.[dev]')"
+lint:            ## style and types; SKIPs only when the tool is absent
+# `A && B || C` reports success when B fails, because the shell runs C and
+# returns its status. That made this target incapable of failing: a real ruff
+# error printed "SKIP" and the gate went green. Absence read as success, in the
+# target that exists to prevent it. if/then/else propagates the exit code.
+	@if command -v ruff >/dev/null 2>&1; then ruff check .; \
+	else echo "SKIP ruff (pip install -e '.[dev]')"; fi
+	@if command -v mypy >/dev/null 2>&1; then mypy ananke; \
+	else echo "SKIP mypy (pip install -e '.[dev]')"; fi
 
 lint-sigma:      ## structural validation of the Sigma pack (needs pysigma)
 	python tests/validate_sigma.py

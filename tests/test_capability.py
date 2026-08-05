@@ -9,14 +9,14 @@ from __future__ import annotations
 
 import csv
 import json
-import sys
 from pathlib import Path
 
 import pytest
-import yaml
 
-
-from ananke.collectors.disclosure import DisclosureViolation, assert_no_host_identifiers  # noqa: E402
+from ananke.collectors.disclosure import (  # noqa: E402
+    DisclosureViolation,
+    assert_no_host_identifiers,
+)
 from ananke.inventory.pqc_capability import (  # noqa: E402
     analyse,
     compare_versions,

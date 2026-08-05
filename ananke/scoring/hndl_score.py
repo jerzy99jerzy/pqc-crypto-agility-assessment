@@ -36,7 +36,10 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
-from ananke.collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers  # noqa: E402
+from ananke.collectors.disclosure import (  # noqa: E402
+    assert_bucket_sizes,
+    assert_no_host_identifiers,
+)
 from ananke.collectors.store import HostStore, write_json_atomic  # noqa: E402
 
 log = logging.getLogger("hndl_score")
@@ -275,7 +278,7 @@ def score_from_store(cfg: dict, min_bucket: int) -> dict:
 
     cap, cap_mode = horizon_pressure_cap(cfg)
     payload = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "model_version": cfg.get("version"),
         "provenance_note": (
             "Certificate dimensions are measured. Sector confidentiality horizon is an "

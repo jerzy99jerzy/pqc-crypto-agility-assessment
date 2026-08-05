@@ -135,6 +135,14 @@ the current level minus a few points, and raise it when a sprint genuinely
 raises coverage. A target invites tests written for the number; a floor only
 prevents regression.
 
+**A check that cannot fail is not a check.** Two shapes produce one: a test
+suite that passes when it collects nothing, and a Makefile recipe written as
+`command -v tool && tool ... || echo SKIP`, where the shell returns the status
+of the `echo` and a real failure prints "SKIP" and exits zero. Both shipped in
+this portfolio, the second inside the target written to enforce the first. Use
+`if/then/else` for optional tools, and prove the failure path by substituting a
+tool that returns non-zero.
+
 **An empty test suite must fail the gate, not pass it.** A fresh `make verify`
 on a repo with no tests exits green by default, because pytest treats "nothing
 collected" as success. That is the same failure class as unknown-resolves-safe:

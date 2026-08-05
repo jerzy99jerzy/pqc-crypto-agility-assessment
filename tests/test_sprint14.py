@@ -125,3 +125,27 @@ def test_layout_lint_catches_drift_in_both_directions(tmp_path, monkeypatch):
     expected = lint._expected_names()
     assert "imaginary.py" in mapped and "imaginary.py" not in expected
     assert "real.py" in expected and "real.py" not in mapped
+
+
+def test_the_lint_target_can_actually_fail():
+    """`A && B || C` returns C's status, so a real ruff error printed "SKIP" and
+    the gate went green. The lint target was incapable of failing, in the target
+    that exists to prevent things passing silently. Fixed with if/then/else;
+    this asserts the shape rather than the behaviour, because invoking make from
+    a test is slower and less specific than reading the recipe."""
+    from pathlib import Path
+
+    makefile = (Path(__file__).resolve().parents[1] / "Makefile").read_text(encoding="utf-8")
+    recipe = makefile.split("lint:", 1)[1].split("\nlint-sigma:", 1)[0]
+    assert "&& ruff check . ||" not in recipe, (
+        "the `A && B || C` form swallows a real failure; use if/then/else")
+    assert "if command -v ruff" in recipe
+
+
+def test_layout_check_tolerates_generated_artefacts():
+    """A clean checkout has no `docs/report.md` until something generates it.
+    The map should still draw it, so its absence must not be called drift."""
+    import tests.lint_layout as lint
+
+    assert "report.md" in lint.GENERATED
+    assert "sectors.json" in lint.GENERATED

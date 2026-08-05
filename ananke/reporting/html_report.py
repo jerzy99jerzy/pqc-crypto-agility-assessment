@@ -21,7 +21,6 @@ discipline the aggregate itself follows.
 
 from __future__ import annotations
 
-import datetime as dt
 import html
 import json
 

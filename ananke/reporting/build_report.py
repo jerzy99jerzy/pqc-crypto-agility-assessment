@@ -269,7 +269,7 @@ def build() -> str:
     parts = [
         "# PQC Crypto-Agility Assessment: Report",
         "",
-        f"Generated {dt.datetime.now(dt.timezone.utc).date().isoformat()} from committed "
+        f"Generated {dt.datetime.now(dt.UTC).date().isoformat()} from committed "
         "aggregates. Host-level data was not read by this generator and is not "
         "available to it.",
         "",
@@ -333,8 +333,8 @@ def _validity_pairs() -> list[dict]:
     construction, and the rendered output still passes the guard afterwards.
     """
     try:
-        from ananke.collectors.store import HostStore
         from ananke.collectors.passive_cert import RAW_DIR
+        from ananke.collectors.store import HostStore
         pairs = []
         for rec in HostStore(RAW_DIR).iter_records():
             for cert in rec.get("certificates", []):

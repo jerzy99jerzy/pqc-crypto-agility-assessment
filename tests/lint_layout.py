@@ -43,6 +43,15 @@ SUMMARISED = {"detection", "config", "data", "tests/fixtures", ".github"}
 SKIP_PARTS = {".git", "__pycache__", ".pytest_cache", ".venv", "venv",
               "dist", "build", ".ruff_cache", ".mypy_cache"}
 
+# Paths the map draws that a clean checkout legitimately does not have, because
+# they are produced by a run rather than committed. Drawing them is correct -
+# a reader needs to know where output lands - so their absence must not fail the
+# check. Caught on a clean clone: `docs/report.md` exists only after
+# `pqc-report`, and the check called that drift.
+GENERATED = {"report.md", "report.html", "sectors.json",
+             "hndl_sector_scores.json", "estate_completeness.json",
+             "key_inventory.json"}
+
 
 def _mapped_names() -> set[str]:
     block = MAP_RE.search(README.read_text(encoding="utf-8"))
@@ -79,7 +88,7 @@ def main() -> int:
     expected = _expected_names()
 
     drawn_but_absent = sorted(
-        name for name in mapped
+        name for name in mapped - GENERATED
         if not any(p.name == name for p in ROOT.rglob(name)
                    if not (SKIP_PARTS & set(p.relative_to(ROOT).parts)))
     )

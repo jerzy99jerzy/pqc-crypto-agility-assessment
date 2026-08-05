@@ -9,12 +9,10 @@ import copy
 import csv
 import datetime as dt
 import json
-import sys
 from pathlib import Path
 
 import pytest
 import yaml
-
 
 from ananke.collectors.disclosure import (  # noqa: E402
     DisclosureViolation,

@@ -112,7 +112,7 @@ def _expiry(record: dict) -> dt.date | None:
             continue
         try:
             if isinstance(value, (int, float)):
-                return dt.datetime.fromtimestamp(value, dt.timezone.utc).date()
+                return dt.datetime.fromtimestamp(value, dt.UTC).date()
             return dt.datetime.fromisoformat(
                 str(value).replace("Z", "+00:00")).date()
         except (ValueError, OSError, OverflowError):
@@ -189,7 +189,7 @@ def run(export: Path, sector: str, out: Path,
                          "with a 'data', 'keys' or 'Keys' array")
 
     payload = {
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "modality": "E_key_inventory_reported",
         "provenance": "reported",
         "provenance_note": "each record is parsed here so its fields are "

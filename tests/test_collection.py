@@ -9,13 +9,9 @@ the only thing verifying the collector was the fact that it imported.
 from __future__ import annotations
 
 import datetime as dt
-import sys
 import urllib.error
-from pathlib import Path
 
 import pytest
-
-
 from cryptography import x509  # noqa: E402
 from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: E402
@@ -34,7 +30,7 @@ def collect_host(client, host, sector, leaves):
 
 def _pem(cn: str, days: int = 90) -> bytes:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    now = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+    now = dt.datetime.now(dt.UTC) - dt.timedelta(days=1)
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
     cert = (
         x509.CertificateBuilder()
