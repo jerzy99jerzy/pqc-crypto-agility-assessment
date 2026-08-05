@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.10.1] - 2026-08-05
+
+### Fixed
+- Two mermaid diagrams failed to parse on GitHub. `;` separates statements in
+  mermaid, so one inside a sequence note and one inside a flowchart label
+  truncated the statement and the whole block rendered as an error box. Both
+  introduced in v0.10.0.
+- `tests/test_sprint10.py` now fails the build on a semicolon inside a mermaid
+  statement. This class of defect is invisible to `make verify`: the markdown is
+  valid, the disclosure lint passes, and the breakage appears only when the
+  forge renders the page. `classDef` and `class` lines are the exception, since
+  they end in `;` legitimately.
+
 ## [0.10.0] - 2026-08-05
 
 Consistency pass against the sibling repositories in the same portfolio, plus

@@ -182,7 +182,7 @@ sequenceDiagram
     else operator's own estate (modality D, offline)
         Op->>PEM: pqc-collect --source local-pem
         PEM-->>ST: same dimensions, provenance reported
-        Note over PEM: no network peer; host from subject, never filename
+        Note over PEM: no network peer, host from subject, never filename
     end
 
     Op->>AGG: make aggregate

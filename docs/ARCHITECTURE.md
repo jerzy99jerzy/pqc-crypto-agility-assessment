@@ -29,7 +29,7 @@ flowchart TD
     end
 
     CTS --> PARSE
-    PEM --> PARSE["certparse.parse_certificate<br/>never raises; vuln flags are tri-state"]
+    PEM --> PARSE["certparse.parse_certificate<br/>never raises, vuln flags tri-state"]
 
     PARSE --> STORE[("HostStore<br/>data/raw, git-ignored<br/>atomic write, TTL, resumable")]
 

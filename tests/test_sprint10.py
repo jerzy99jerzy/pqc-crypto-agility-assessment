@@ -156,3 +156,37 @@ def test_the_forge_is_still_a_host_identifier_in_collected_data():
     """Prose-only. In a record it is a host like any other."""
     with pytest.raises(DisclosureViolation):
         assert_no_host_identifiers({"source": "github.com"})
+
+
+# --------------------------------------------------------------------------- #
+# mermaid blocks render only on the forge, so nothing else checks them
+# --------------------------------------------------------------------------- #
+def test_no_statement_separator_inside_a_mermaid_label():
+    """`;` separates statements in mermaid, so one inside a note or a node label
+    truncates the statement and the diagram fails to parse.
+
+    This class of defect is invisible to `make verify`: the markdown is valid,
+    the lint passes, and the breakage appears only when GitHub renders the page.
+    Two shipped in v0.10.0. `classDef` and `class` lines end in `;` legitimately
+    and are the only exception.
+    """
+    import pathlib
+
+    offenders = []
+    for name in ("README.md", "docs/ARCHITECTURE.md", "docs/MECHANISMS.md",
+                 "docs/METHODOLOGY.md", "docs/THREAT-MODEL.md", "docs/MVP.md"):
+        path = pathlib.Path(__file__).resolve().parents[1] / name
+        if not path.exists():
+            continue
+        inside = False
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith("```mermaid"):
+                inside = True
+                continue
+            if inside and stripped.startswith("```"):
+                inside = False
+                continue
+            if inside and ";" in stripped and not stripped.startswith(("classDef", "class ")):
+                offenders.append(f"{name}:{number}: {stripped}")
+    assert offenders == [], "semicolon inside a mermaid statement:\n" + "\n".join(offenders)
