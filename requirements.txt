@@ -1,2 +1,5 @@
+# Kept for environments that cannot install from pyproject.toml. It is generated
+# from the [project] dependencies there, which remain the single source of
+# truth: edit pyproject.toml, then mirror the change here.
 cryptography>=42.0
 PyYAML>=6.0

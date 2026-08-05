@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pqc-crypto-agility-assessment"
-version = "0.9.0"
+version = "0.10.0"
 description = "Repeatable PQC inventory pipeline: passive CT, HNDL scoring, Sigma/KQL detection, capability resolution"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,21 +24,24 @@ dev = [
 # Console scripts remove the need to invoke modules by path. After
 # `pip install -e .` these are on PATH and the Makefile calls them.
 [project.scripts]
-pqc-select      = "collectors.select_targets:main"
-pqc-collect     = "collectors.passive_cert:main"
-pqc-score       = "scoring.hndl_score:main"
-pqc-capability  = "inventory.pqc_capability:main"
-pqc-handshake   = "active.handshake_demo:main"
-pqc-report      = "reporting.build_report:main"
+pqc-select      = "ananke.collectors.select_targets:main"
+pqc-collect     = "ananke.collectors.passive_cert:main"
+pqc-score       = "ananke.scoring.hndl_score:main"
+pqc-capability  = "ananke.inventory.pqc_capability:main"
+pqc-handshake   = "ananke.active.handshake_demo:main"
+pqc-report      = "ananke.reporting.build_report:main"
+pqc-fixture     = "ananke.fixture:main"
 
 [tool.setuptools]
-# Flat layout: each top-level directory is an importable package.
+# One namespace. Five top-level packages named `collectors`, `scoring` and
+# the like were collision candidates in any environment that installed them.
 packages = [
-    "collectors",
-    "active",
-    "scoring",
-    "inventory",
-    "reporting",
+    "ananke",
+    "ananke.collectors",
+    "ananke.active",
+    "ananke.scoring",
+    "ananke.inventory",
+    "ananke.reporting",
 ]
 
 [tool.pytest.ini_options]
@@ -47,7 +50,7 @@ addopts = "-q"
 
 [tool.coverage.run]
 branch = true
-source = ["collectors", "scoring", "inventory", "reporting", "active"]
+source = ["ananke"]
 omit = [
     "*/__init__.py",
     # Honest exclusions: these cannot be exercised offline and pretending they

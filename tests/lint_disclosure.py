@@ -24,7 +24,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 import yaml  # noqa: E402
 
-from collectors.disclosure import (  # noqa: E402
+from ananke.collectors.disclosure import (  # noqa: E402
     DisclosureViolation,
     assert_no_host_identifiers,
     scan_text,

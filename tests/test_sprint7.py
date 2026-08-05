@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import pytest
 
-from inventory.pqc_capability import resolve, load_config
+from ananke.inventory.pqc_capability import resolve, load_config
 
 
 @pytest.fixture(scope="module")

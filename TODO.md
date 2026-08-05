@@ -1,7 +1,7 @@
 # TODO
 
 Compiled from the open items tracked across sprints. This is the single source
-of truth for what is not done; `docs/methodology.md` keeps the reasoning, this
+of truth for what is not done; `docs/METHODOLOGY.md` keeps the reasoning, this
 file keeps the state.
 
 Status legend:
@@ -14,7 +14,7 @@ Status legend:
 
 Each open item states an acceptance test, so "done" is not a matter of opinion.
 Which subset of them constitutes a finished product is a different question and
-is answered in `docs/mvp.md`, not here.
+is answered in `docs/MVP.md`, not here.
 
 ---
 
@@ -119,6 +119,31 @@ is answered in `docs/mvp.md`, not here.
 
 ## Decisions (human, not engineering)
 
+### T12 Cross-check a reported estate against the passive layer
+- Status: `ready`
+- `docs/THREAT-MODEL.md` A3 has no control on the input, only on the label: an
+  operator's dump cannot be shown complete from the dump. The available check is
+  to run the passive layer against the same operator's public estate and compare.
+  A host present in CT and absent from the dump is a finding, not an error.
+- This is the difference between an assessment and a transcription, and it is
+  the thing that makes a first-party engagement worth paying for.
+- Acceptance test: a synthetic pair where the offline dump omits a host that CT
+  shows, and the comparison reports it without either store contaminating the
+  other or the aggregate naming the host.
+
+---
+
+### T13 Portfolio-level licence rationale
+- Status: `decision`
+- Three repositories, three licences: MIT, Apache-2.0, and AGPL-3.0 plus
+  commercial here. Each is defensible alone; nowhere is it written why they
+  differ, and the question will be asked by anyone evaluating the portfolio as a
+  whole rather than one repository.
+- Not an engineering item. It needs one paragraph, in `LICENSING.md`, or a
+  decision to converge.
+
+---
+
 ### T11 Inventory import (CMDB / OT scanner export)
 - Status: `blocked-external`
 - Blocker: no sample of a real export. A CSV or JSON schema designed without one
@@ -161,7 +186,8 @@ is answered in `docs/mvp.md`, not here.
 - Endpoint capability resolver with real semantic version comparison (sprint 3)
 - Handshake output parser split out and tested via synthetic transcripts (sprint 4)
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
-- Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/mechanisms.md`, coverage floor 65 -> 70 (sprint 6)
+- Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/MECHANISMS.md`, coverage floor 65 -> 70 (sprint 6)
 - NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)
+- Portfolio consistency: single `ananke` package namespace (five generic top-level packages removed), uppercase documentation filenames, `SECURITY.md`, `docs/THREAT-MODEL.md`, `docs/ARCHITECTURE.md` with block index, `pqc-fixture` synthetic estates including two adversarial worlds, prose-only infrastructure allowlist (sprint 10)
 - Source seam: `CrtShSource` and `LocalPemSource` behind one interface; aggregate reports the regime instead of constants; `reported` provenance for operator-supplied sets; suppression relaxed only for first-party estates (sprint 9)
 - Disclosure guard boundary defect (host identity adjacent to `_` matched nothing and passed both guards); filename allowlist derived from `git ls-files` for the prose scan, strict guard restored to zero filename exemptions (sprint 8)

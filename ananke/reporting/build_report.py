@@ -25,9 +25,9 @@ from pathlib import Path
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
-from collectors.disclosure import DisclosureViolation, scan_text  # noqa: E402
+from ananke.collectors.disclosure import DisclosureViolation, scan_text  # noqa: E402
 
 log = logging.getLogger("build_report")
 AGG_DIR = REPO_ROOT / "data" / "aggregates"

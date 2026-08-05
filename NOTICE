@@ -1,0 +1,23 @@
+ANANKE / pqc-crypto-agility-assessment
+Copyright (c) 2026 Jerzy Siwecki
+
+This product is dual-licensed: AGPL-3.0-only, or a commercial license from the
+author. See LICENSE and LICENSING.md.
+
+Third-party components used at runtime, under their own licences:
+
+  cryptography      Apache-2.0 OR BSD-3-Clause   certificate parsing
+  PyYAML            MIT                          configuration
+  pySigma           LGPL-2.1 (dev/test only)     detection rule validation
+
+Data sources consulted at runtime are operated by third parties and carry their
+own terms:
+
+  crt.sh            Sectigo, public Certificate Transparency search
+  Tranco            ranking list, cited by pinned identifier
+
+No code from those services is included here. Certificate Transparency logs are
+public records; this project reads them and never submits to them.
+
+Detection content in detection/ is original work. Sigma is a community
+specification; the rules are not derived from any vendor's ruleset.

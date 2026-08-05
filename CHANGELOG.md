@@ -3,6 +3,60 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.10.0] - 2026-08-05
+
+Consistency pass against the sibling repositories in the same portfolio, plus
+the packaging defect that review turned up.
+
+### Changed
+- **One package instead of five.** `collectors`, `active`, `scoring`,
+  `inventory` and `reporting` were top-level packages, so installing this wheel
+  planted five collision candidates in site-packages under names generic enough
+  that a collision was a matter of time. They now live under `ananke`. The
+  distribution is still `pqc-crypto-agility-assessment` and the console scripts
+  are still `pqc-*`: a slug is a search term and a command is typed by hand,
+  while an import path is a namespace and needs to be unique rather than
+  descriptive. **Breaking for anyone importing the modules directly.**
+- The refactor exposed two latent couplings, both fixed: `weights.yaml` was
+  addressed through the repository root, which an installed wheel does not have,
+  and the disclosure guard's repository sentinel tested for a directory that no
+  longer exists.
+- Documentation filenames are uppercase, matching `phantomatics`:
+  `MECHANISMS.md`, `METHODOLOGY.md`, `MVP.md`. Generated output stays lowercase
+  (`report.md`), so the case now distinguishes a design document from an
+  artefact.
+- The naming convention in `README.md` was wrong and is rewritten. It claimed
+  codenames stay out of package names, which `phantomatics` does not do and
+  this release no longer does either.
+- `README.md` declared three provenance labels. `reported` shipped in v0.9.0 and
+  the list was never updated.
+- `requirements.txt` states that `pyproject.toml` is the source of truth rather
+  than silently competing with it.
+
+### Added
+- `SECURITY.md`: how to report a defect in the guard privately, what counts as
+  a vulnerability here, and why silent metric distortion is treated as one.
+- `docs/THREAT-MODEL.md`: five adversaries against the two promises this project
+  is published on, including the client who supplies a convenient inventory, and
+  what the residual risk is in each case.
+- `docs/ARCHITECTURE.md`: component view with a block-to-documentation index,
+  maintained as a table so a rename cannot go stale unnoticed. Needed since the
+  pipeline stopped being a line in v0.9.0.
+- `pqc-fixture`: three synthetic estates. `clean` is a plausible estate,
+  `partial` is the paying adversary who omits what would fail, `hostile` has
+  filenames contradicting subjects, underscore-glued identity, an empty subject
+  and a file that is not a certificate. Borrowed from `phantomatics`, where the
+  adversarial world is what validated the design and the clean world only ever
+  confirmed the obvious.
+- `tests/test_sprint10.py`: twelve cases running the offline path against those
+  estates. The load-bearing ones are that the hostile world neither crashes nor
+  puts a host identifier into the aggregate, and that the partial world is
+  indistinguishable from a complete one on the data alone.
+- Prose-only allowlist for the repository's own publishing infrastructure. A
+  CI badge is a URL to the forge; `github.com` in a collected record is still a
+  host identifier and still fails the structural guard.
+- CI badge, `NOTICE`.
+
 ## [0.9.0] - 2026-08-05
 
 The collector stops being welded to Certificate Transparency. An operator can
@@ -59,9 +113,9 @@ a published tag, this releases the documentation state as a patch.
 ### Added
 - Project codename **ANANKE** recorded in `README.md` (*On the name*, plus the
   naming convention that keeps codenames out of the slug, package name and
-  console scripts), and in the headers of `methodology.md`, `mechanisms.md` and
-  `mvp.md`.
-- `docs/mvp.md`: release criteria for the three candidate audiences.
+  console scripts), and in the headers of `METHODOLOGY.md`, `MECHANISMS.md` and
+  `MVP.md`.
+- `docs/MVP.md`: release criteria for the three candidate audiences.
 - `CONTRIBUTING.md`: new documentation must be staged before `make verify`,
   since the derived filename allowlist reads `git ls-files` and an untracked
   file is deliberately not yet a known filename.
@@ -117,7 +171,7 @@ of the hand-maintained filename allowlist that produced both.
   descriptive: the naming convention keeps codenames in documentation and out of
   anything CI, PyPI or an import path resolves. Rationale in `README.md` under
   *On the name*.
-- `docs/mvp.md`: release criteria for the three candidate audiences, each with a
+- `docs/MVP.md`: release criteria for the three candidate audiences, each with a
   definition of done, a distance estimate and its blockers. `TODO.md` records
   what is not done; this records what finished means, which was unstated for
   eight sprints.
@@ -180,7 +234,7 @@ that fail against the 0.5.0 code.
   strings are not false-positived.
 
 ### Added
-- `docs/mechanisms.md`: how each mechanism works, for readers who want the
+- `docs/MECHANISMS.md`: how each mechanism works, for readers who want the
   implementation rather than the thesis or the epistemics.
 - `tests/test_sprint6.py`: regression guards for the three fixes, plus coverage
   of report rendering and store-level scoring.

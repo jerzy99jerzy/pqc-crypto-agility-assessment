@@ -16,14 +16,14 @@ import pytest
 import yaml
 
 
-from collectors.disclosure import (  # noqa: E402
+from ananke.collectors.disclosure import (  # noqa: E402
     DisclosureViolation,
     assert_bucket_sizes,
     assert_no_host_identifiers,
     scan_text,
 )
-from collectors.select_targets import classify, matching_rules, select  # noqa: E402
-from scoring.hndl_score import (  # noqa: E402
+from ananke.collectors.select_targets import classify, matching_rules, select  # noqa: E402
+from ananke.scoring.hndl_score import (  # noqa: E402
     exposure_years,
     horizon_pressure_cap,
     load_config,
@@ -186,7 +186,7 @@ def test_selection_manifest_carries_provenance_and_no_domains(tmp_path: Path):
 # --- report builder ---------------------------------------------------------
 
 def test_report_builder_refuses_leaked_hostnames(monkeypatch, tmp_path: Path):
-    from reporting import build_report
+    from ananke.reporting import build_report
 
     monkeypatch.setattr(build_report, "AGG_DIR", tmp_path)
     (tmp_path / "sectors.json").write_text(json.dumps({
@@ -209,7 +209,7 @@ def test_report_builder_refuses_leaked_hostnames(monkeypatch, tmp_path: Path):
 
 
 def test_report_states_missing_denominator(monkeypatch, tmp_path: Path):
-    from reporting import build_report
+    from ananke.reporting import build_report
 
     monkeypatch.setattr(build_report, "AGG_DIR", tmp_path)
     out = tmp_path / "report.md"

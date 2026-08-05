@@ -21,9 +21,9 @@ from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: E402
 from cryptography.x509.oid import NameOID  # noqa: E402
 
-from collectors import crtsh as crtsh_mod  # noqa: E402
-from collectors.crtsh import CrtShClient, RateLimiter, select_current_leaves  # noqa: E402
-from collectors.sources import CrtShSource  # noqa: E402
+from ananke.collectors import crtsh as crtsh_mod  # noqa: E402
+from ananke.collectors.crtsh import CrtShClient, RateLimiter, select_current_leaves  # noqa: E402
+from ananke.collectors.sources import CrtShSource  # noqa: E402
 
 
 def collect_host(client, host, sector, leaves):

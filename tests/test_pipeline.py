@@ -21,9 +21,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.x509.oid import NameOID
 
-from collectors.certparse import parse_certificate
-from collectors.store import HostStore, host_key
-from scoring.hndl_score import load_config, score_subject
+from ananke.collectors.certparse import parse_certificate
+from ananke.collectors.store import HostStore, host_key
+from ananke.scoring.hndl_score import load_config, score_subject
 
 
 def _make_cert(key, cn: str, days: int, sig_hash=hashes.SHA256()):
@@ -138,14 +138,14 @@ def test_score_is_bounded_and_contributions_sum(cfg):
 
 def test_no_hardcoded_weights_in_scoring_module():
     """Weights must come from config. Guard against drift back into the code."""
-    src = (REPO_ROOT / "scoring" / "hndl_score.py").read_text(encoding="utf-8")
+    src = (REPO_ROOT / "ananke" / "scoring" / "hndl_score.py").read_text(encoding="utf-8")
     assert 'cfg["weights"]' in src
     for suspicious in ("0.30", "0.15", "healthcare\": 30"):
         assert suspicious not in src
 
 
 def test_handshake_refuses_non_allowlisted_target(tmp_path: Path, capsys):
-    from active import handshake_demo
+    from ananke.active import handshake_demo
 
     allowlist = tmp_path / "allow.yaml"
     allowlist.write_text("self: []\nreference:\n  - cloudflare.com\n", encoding="utf-8")
@@ -158,7 +158,7 @@ def test_handshake_refuses_non_allowlisted_target(tmp_path: Path, capsys):
 
 
 def test_aggregate_suppresses_small_buckets(tmp_path: Path, monkeypatch):
-    from collectors import passive_cert
+    from ananke.collectors import passive_cert
 
     raw = tmp_path / "raw"
     agg = tmp_path / "agg"

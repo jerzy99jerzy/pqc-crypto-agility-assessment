@@ -113,7 +113,18 @@ _UNTRACKED_SCAN_SKIP = {
     ".pytest_cache", ".mypy_cache", ".ruff_cache", "data", ".eggs",
 }
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+# Hosts that belong to the repository's own publishing infrastructure rather
+# than to any estate under assessment. A CI badge is a URL to the forge, and a
+# guard that fails the build over its own badge gets switched off.
+#
+# Prose only, and separate from ALLOWED_TOKENS on purpose. `github.com` in a
+# collected record is a host identifier like any other and must still fail the
+# structural guard; `github.com` in README is where this repository lives.
+_PROSE_INFRASTRUCTURE = frozenset({
+    "github.com", "raw.githubusercontent.com", "badge.svg", "shields.io",
+})
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _looks_like_this_repo(base: Path) -> bool:
@@ -125,7 +136,7 @@ def _looks_like_this_repo(base: Path) -> bool:
     fallback exists for a source checkout or tarball, so it only runs where the
     project's own marker files are present. Anywhere else, no derived allowlist.
     """
-    return (base / "pyproject.toml").is_file() and (base / "collectors").is_dir()
+    return (base / "pyproject.toml").is_file() and (base / "ananke").is_dir()
 
 
 @lru_cache(maxsize=4)
@@ -204,6 +215,8 @@ def _is_allowed(
     if any(t.endswith(ext) for ext in SAFE_FILE_EXTENSIONS):
         return True
     if repo_files and t in _repo_file_tokens():
+        return True
+    if repo_files and t in _PROSE_INFRASTRUCTURE:
         return True
     # Version strings such as 3.5.0 and OpenSSL 3.0.13 are not hostnames.
     return all(part.isdigit() for part in t.split("."))

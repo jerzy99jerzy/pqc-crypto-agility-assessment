@@ -29,9 +29,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from collectors import passive_cert
-from collectors.passive_cert import MixedModalityError, _regime, aggregate
-from collectors.sources import CrtShSource, LocalPemSource
+from ananke.collectors import passive_cert
+from ananke.collectors.passive_cert import MixedModalityError, _regime, aggregate
+from ananke.collectors.sources import CrtShSource, LocalPemSource
 
 
 def _cert(cn: str | None, sans: list[str] | None = None, days: int = 365) -> bytes:

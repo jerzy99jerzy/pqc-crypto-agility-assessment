@@ -23,7 +23,7 @@ import subprocess
 
 import pytest
 
-from collectors.disclosure import (
+from ananke.collectors.disclosure import (
     ALLOWED_TOKENS,
     HOSTNAME_RE,
     DisclosureViolation,
@@ -132,7 +132,7 @@ def test_derivation_prefers_git_and_filters_extensions(tmp_path):
 def _fake_checkout(root):
     """Marker files the fallback requires before it will walk a directory."""
     (root / "pyproject.toml").write_text("x", encoding="utf-8")
-    (root / "collectors").mkdir(exist_ok=True)
+    (root / "ananke").mkdir(exist_ok=True)
 
 
 def test_walk_fallback_never_allowlists_the_raw_store(tmp_path):

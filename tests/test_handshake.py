@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 
-from active.handshake_demo import parse_handshake_output  # noqa: E402
+from ananke.active.handshake_demo import parse_handshake_output  # noqa: E402
 from tests.fixtures import handshake_transcripts as fx  # noqa: E402
 
 STARTED = "2026-07-29T00:00:00+00:00"

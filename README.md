@@ -2,12 +2,14 @@
 
 ### Codename: ANANKE
 
+[![CI](https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/actions/workflows/ci.yml/badge.svg)](https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment/actions/workflows/ci.yml)
+
 > Certificate dimensions come from public data. PQC readiness is demonstrated
 > actively only against own and reference infrastructure. Third-party estate is
 > never touched actively.
 
 Release criteria and the definition of done for each intended audience live in
-[`docs/mvp.md`](./docs/mvp.md). The codename is explained under
+[`docs/MVP.md`](./docs/MVP.md). The codename is explained under
 [On the name](#on-the-name).
 
 ## Thesis
@@ -62,7 +64,7 @@ before opening a socket. Reference hosts are public implementations serving
 internet-scale traffic, used as positive controls for the method itself.
 
 **Modality rejected: mass active sweep of third-party estate.** Rationale kept
-in `docs/methodology.md`. Short version: a single handshake and an nmap run
+in `docs/METHODOLOGY.md`. Short version: a single handshake and an nmap run
 generate comparable traffic and carry opposite optics, the marginal signal was
 near zero, and the downside was asymmetric.
 
@@ -160,6 +162,7 @@ sequenceDiagram
     actor Op as Operator
     participant SEL as select_targets
     participant CT as crt.sh (public CT)
+    participant PEM as local-pem (operator dump, offline)
     participant ST as store (data/raw, git-ignored)
     participant AGG as passive_cert.aggregate
     participant G as disclosure guard
@@ -170,10 +173,16 @@ sequenceDiagram
     Op->>SEL: make select (pinned, hashed ranking)
     SEL-->>Op: selection manifest (counts, hashes, no names)
 
-    Op->>CT: make collect
-    loop per domain, rate-limited + retried on 429/5xx
-        CT-->>ST: parsed dimensions (vuln flags True/False/None)
-        Note over ST: atomic write, TTL freshness, resumable
+    alt third-party estate (modality A)
+        Op->>CT: make collect
+        loop per domain, rate-limited + retried on 429/5xx
+            CT-->>ST: parsed dimensions (vuln flags True/False/None)
+            Note over ST: atomic write, TTL freshness, resumable
+        end
+    else operator's own estate (modality D, offline)
+        Op->>PEM: pqc-collect --source local-pem
+        PEM-->>ST: same dimensions, provenance reported
+        Note over PEM: no network peer; host from subject, never filename
     end
 
     Op->>AGG: make aggregate
@@ -197,14 +206,17 @@ sequenceDiagram
 ```
 
 Each participant maps to the module that implements it and the section of
-`docs/mechanisms.md` that explains it; that mapping table is kept in
-`mechanisms.md` so the diagram and the prose cannot drift apart.
+`docs/MECHANISMS.md` that explains it; that mapping table is kept in
+`MECHANISMS.md` so the diagram and the prose cannot drift apart.
 
 ## Provenance convention
 
-Three labels, used in code, in output records and in the report:
+Four labels, used in code, in output records and in the report:
 
 - `[measured]` data read from a certificate, a handshake or a log, without interpretation
+- `[reported]` supplied by the party the report is for. Every certificate in an
+  operator's dump is parsed here, so the *fields* are measured; what is reported
+  is that the dump is the estate. The label sits on the set, not the field
 - `[inference]` risk classification derived from observable proxies
 - `[speculation]` explicitly uncertain, carried through rather than resolved
 
@@ -314,9 +326,11 @@ pqc-crypto-agility-assessment/
 │   ├── raw/             #   host level, git-ignored
 │   └── aggregates/      #   sector level, committed
 ├── docs/
-│   ├── methodology.md
-│   ├── mechanisms.md    #   how each mechanism works
-│   ├── mvp.md           #   release criteria per audience, definition of done
+│   ├── ARCHITECTURE.md  #   what talks to what, block index
+│   ├── METHODOLOGY.md
+│   ├── MECHANISMS.md    #   how each mechanism works
+│   ├── MVP.md           #   release criteria per audience, definition of done
+│   ├── THREAT-MODEL.md  #   adversaries against the guard and the number
 │   └── report.md        #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
@@ -332,6 +346,8 @@ pqc-crypto-agility-assessment/
 │   ├── validate_sigma.py
 │   └── lint_disclosure.py
 ├── LICENSE                   # AGPL-3.0-only
+├── NOTICE                    # third-party components and data sources
+├── SECURITY.md               # reporting a defect in the guard
 ├── LICENSING.md              # dual-license terms
 ├── CHANGELOG.md
 ├── TODO.md                   # open items, each with an acceptance test
@@ -549,7 +565,7 @@ flags are now tri-state. A truncated version string (`3.5` against a `3.5.0`
 threshold) resolved an upgraded host as `not_capable`. The disclosure guard
 could not see IPv4 literals at all. Each fix carries a regression test that
 fails against the previous release. Coverage floor raised 65 to 70;
-`docs/mechanisms.md` added.
+`docs/MECHANISMS.md` added.
 
 Sprint 7: capability thresholds for NSS (3.118) and LibreSSL verified against primary sources, closing the last `null` entries with real values. LibreSSL has no PQC in any released version through 3.9, which is a measured negative, not merely unknown; the resolver now expresses that through `pqc_absent_through` so a confirmed absence at or below the verified version reports `not_capable` while a newer release stays `unknown`.
 
@@ -574,7 +590,7 @@ for a first-party estate and only because a source said so.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test. What *finished* means, which is a separate question,
-lives in [`docs/mvp.md`](./docs/mvp.md).
+lives in [`docs/MVP.md`](./docs/MVP.md).
 
 ## On the name
 
@@ -602,12 +618,21 @@ Invincible*.
 
 ### Naming convention
 
-Tools in this line are codenamed after Lem. Codenames live in documentation and
-in conversation; repository slugs, package names and console scripts stay
-descriptive and machine-boring, because those are what CI, PyPI and search
-operate on. `pqc-crypto-agility-assessment` is the slug and stays the slug.
-The two layers are kept separate on purpose: a codename that leaks into an
-import path is a rename waiting to break someone's pipeline.
+Tools in this line are codenamed after Lem, following `phantomatics`, named for
+*fantomatyka* in *Summa Technologiae*.
+
+The rule is about what each name is for, not about keeping codenames out of
+code. A repository slug is a search term, so it stays descriptive:
+`pqc-crypto-agility-assessment` says what the thing does to somebody who has
+never heard of it, and it stays the slug. Console scripts are typed by hand and
+grouped by domain, so they stay `pqc-*`. An import path is a namespace, and a
+namespace has to be unique rather than descriptive, which is why the package is
+`ananke` and not five top-level directories called `collectors`, `scoring` and
+the like. Those were collision candidates in any environment that installed
+this, and v0.10.0 moved them.
+
+A distribution whose install name and import name differ is unremarkable, and
+this one is explicit about which layer each name serves.
 
 ## Licensing
 

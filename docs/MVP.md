@@ -39,6 +39,8 @@ are the product.
       capability thresholds.
 - [x] Detection content published with an honest validation-status table.
 - [x] Packaging, CI, coverage floor, changelog, license.
+- [x] Security policy, threat model, and a component view a reader can enter
+      from (sprint 10).
 - [ ] Every claim in `README.md` backed by something in the tree. **One claim is
       currently not**: PQC readiness is described as demonstrated against own
       infrastructure, and no `self` host exists (T2).

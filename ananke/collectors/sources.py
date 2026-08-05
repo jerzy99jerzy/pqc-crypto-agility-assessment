@@ -37,14 +37,14 @@ from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 try:
-    from collectors.certparse import parse_certificate
-    from collectors.crtsh import CrtShClient, select_current_leaves
+    from ananke.collectors.certparse import parse_certificate
+    from ananke.collectors.crtsh import CrtShClient, select_current_leaves
 except ImportError:  # pragma: no cover
     import sys
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from collectors.certparse import parse_certificate
-    from collectors.crtsh import CrtShClient, select_current_leaves
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from ananke.collectors.certparse import parse_certificate
+    from ananke.collectors.crtsh import CrtShClient, select_current_leaves
 
 log = logging.getLogger("sources")
 

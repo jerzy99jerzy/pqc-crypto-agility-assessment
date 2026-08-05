@@ -42,10 +42,10 @@ from pathlib import Path
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
-from collectors.disclosure import assert_no_host_identifiers  # noqa: E402
-from collectors.store import write_json_atomic  # noqa: E402
+from ananke.collectors.disclosure import assert_no_host_identifiers  # noqa: E402
+from ananke.collectors.store import write_json_atomic  # noqa: E402
 
 log = logging.getLogger("pqc_capability")
 DEFAULT_CONFIG = REPO_ROOT / "config" / "pqc_capability.yaml"

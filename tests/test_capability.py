@@ -16,8 +16,8 @@ import pytest
 import yaml
 
 
-from collectors.disclosure import DisclosureViolation, assert_no_host_identifiers  # noqa: E402
-from inventory.pqc_capability import (  # noqa: E402
+from ananke.collectors.disclosure import DisclosureViolation, assert_no_host_identifiers  # noqa: E402
+from ananke.inventory.pqc_capability import (  # noqa: E402
     analyse,
     compare_versions,
     load_config,

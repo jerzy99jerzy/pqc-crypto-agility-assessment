@@ -26,13 +26,13 @@ from pathlib import Path
 
 import pytest
 
-from collectors.certparse import parse_certificate
-from collectors.disclosure import (
+from ananke.collectors.certparse import parse_certificate
+from ananke.collectors.disclosure import (
     DisclosureViolation,
     assert_no_host_identifiers,
     scan_text,
 )
-from scoring.hndl_score import load_config, score_subject
+from ananke.scoring.hndl_score import load_config, score_subject
 
 
 # --------------------------------------------------------------------------- #
@@ -81,7 +81,7 @@ def test_unknown_key_algorithm_is_none_not_false(monkeypatch):
     counts `is False` as a PQC indicator, so a parser that guesses False turns
     every algorithm it cannot name into evidence of PQC adoption.
     """
-    import collectors.certparse as cp
+    import ananke.collectors.certparse as cp
 
     class _Unsupported:
         pass
@@ -115,7 +115,7 @@ def test_unknown_vulnerability_scores_as_unknown_not_safe():
 
 def test_pqc_indicator_count_ignores_unknown():
     """Aggregation must count only measured PQC, never unknown."""
-    from collectors.passive_cert import aggregate  # noqa: F401  (import guard)
+    from ananke.collectors.passive_cert import aggregate  # noqa: F401  (import guard)
 
     unknown_cert = {"key_quantum_vulnerable": None, "signature_quantum_vulnerable": None}
     pqc_cert = {"key_quantum_vulnerable": False, "signature_quantum_vulnerable": False}
@@ -164,7 +164,7 @@ def test_report_sections_render_without_aggregates():
     A report generator that silently omits a missing section produces a
     document whose gaps are invisible, which is the opposite of the point.
     """
-    from reporting import build_report as br
+    from ananke.reporting import build_report as br
 
     assert "No selection manifest present" in br.section_selection(None)
     assert "No passive aggregate present" in br.section_measured(None)
@@ -174,7 +174,7 @@ def test_report_sections_render_without_aggregates():
 
 
 def test_report_measured_section_renders_counts_and_percentages():
-    from reporting import build_report as br
+    from ananke.reporting import build_report as br
 
     sectors = {
         "modality": "A_passive_public_ct",
@@ -204,7 +204,7 @@ def test_report_measured_section_renders_counts_and_percentages():
 
 def test_report_scores_section_reproduces_config_issues():
     """Model warnings must appear in the report, not be filtered out of it."""
-    from reporting import build_report as br
+    from ananke.reporting import build_report as br
 
     scores = {
         "model_version": 1.1,
@@ -227,7 +227,7 @@ def test_report_scores_section_reproduces_config_issues():
 
 def test_full_report_build_passes_its_own_disclosure_scan():
     """The generator scans its own output; that guard must hold on an empty run."""
-    from reporting.build_report import build, reference_hosts
+    from ananke.reporting.build_report import build, reference_hosts
 
     text = build()
     assert scan_text(text, extra_allowed=reference_hosts()) == []
@@ -238,7 +238,7 @@ def test_full_report_build_passes_its_own_disclosure_scan():
 # Coverage: store-level scoring (previously 56%)
 # --------------------------------------------------------------------------- #
 def _write_host_record(root: Path, host: str, sector: str, vulnerable: bool = True):
-    from collectors.store import HostStore
+    from ananke.collectors.store import HostStore
 
     store = HostStore(root)
     store.write(host, {
@@ -256,7 +256,7 @@ def _write_host_record(root: Path, host: str, sector: str, vulnerable: bool = Tr
 
 
 def test_score_from_store_suppresses_small_buckets(tmp_path, monkeypatch):
-    import scoring.hndl_score as hs
+    import ananke.scoring.hndl_score as hs
 
     monkeypatch.setattr(hs, "RAW_DIR", tmp_path)
     for i in range(6):
@@ -273,7 +273,7 @@ def test_score_from_store_suppresses_small_buckets(tmp_path, monkeypatch):
 
 
 def test_score_from_store_output_is_disclosure_clean(tmp_path, monkeypatch):
-    import scoring.hndl_score as hs
+    import ananke.scoring.hndl_score as hs
 
     monkeypatch.setattr(hs, "RAW_DIR", tmp_path)
     for i in range(5):
@@ -285,7 +285,7 @@ def test_score_from_store_output_is_disclosure_clean(tmp_path, monkeypatch):
 
 
 def test_score_from_store_ranks_long_horizon_above_short(tmp_path, monkeypatch):
-    import scoring.hndl_score as hs
+    import ananke.scoring.hndl_score as hs
 
     monkeypatch.setattr(hs, "RAW_DIR", tmp_path)
     for i in range(5):

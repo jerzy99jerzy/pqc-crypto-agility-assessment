@@ -6,7 +6,7 @@ it. It combines measured certificate dimensions with one named assumption
 (sector confidentiality horizon) and projects the result onto the 2030-12-31
 regulatory milestone.
 
-Every weight, horizon and threshold comes from scoring/weights.yaml. Nothing is
+Every weight, horizon and threshold comes from ananke.scoring/weights.yaml. Nothing is
 hardcoded here except the arithmetic.
 
 Output per subject:
@@ -34,13 +34,15 @@ from statistics import mean
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
-from collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers  # noqa: E402
-from collectors.store import HostStore, write_json_atomic  # noqa: E402
+from ananke.collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers  # noqa: E402
+from ananke.collectors.store import HostStore, write_json_atomic  # noqa: E402
 
 log = logging.getLogger("hndl_score")
-DEFAULT_CONFIG = REPO_ROOT / "scoring" / "weights.yaml"
+# Package data, addressed from the module rather than the repo root: an
+# installed wheel has no repo root to walk up to.
+DEFAULT_CONFIG = Path(__file__).resolve().parent / "weights.yaml"
 RAW_DIR = REPO_ROOT / "data" / "raw" / "certs"
 AGG_DIR = REPO_ROOT / "data" / "aggregates"
 

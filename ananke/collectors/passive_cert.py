@@ -32,20 +32,20 @@ from pathlib import Path
 import yaml
 
 try:  # allow both `python -m collectors.passive_cert` and direct execution
-    from collectors.certparse import parse_certificate
-    from collectors.crtsh import CrtShClient, RateLimiter
-    from collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers
-    from collectors.sources import CertificateSource, CrtShSource, LocalPemSource
-    from collectors.store import HostStore, write_json_atomic
+    from ananke.collectors.certparse import parse_certificate
+    from ananke.collectors.crtsh import CrtShClient, RateLimiter
+    from ananke.collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers
+    from ananke.collectors.sources import CertificateSource, CrtShSource, LocalPemSource
+    from ananke.collectors.store import HostStore, write_json_atomic
 except ImportError:  # pragma: no cover
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from collectors.certparse import parse_certificate
-    from collectors.crtsh import CrtShClient, RateLimiter
-    from collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers
-    from collectors.sources import CertificateSource, CrtShSource, LocalPemSource
-    from collectors.store import HostStore, write_json_atomic
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from ananke.collectors.certparse import parse_certificate
+    from ananke.collectors.crtsh import CrtShClient, RateLimiter
+    from ananke.collectors.disclosure import assert_bucket_sizes, assert_no_host_identifiers
+    from ananke.collectors.sources import CertificateSource, CrtShSource, LocalPemSource
+    from ananke.collectors.store import HostStore, write_json_atomic
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = REPO_ROOT / "data" / "raw" / "certs"
 AGG_DIR = REPO_ROOT / "data" / "aggregates"
 

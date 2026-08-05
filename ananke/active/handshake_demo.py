@@ -38,9 +38,9 @@ from pathlib import Path
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
-from collectors.store import write_json_atomic  # noqa: E402
+from ananke.collectors.store import write_json_atomic  # noqa: E402
 
 log = logging.getLogger("handshake_demo")
 
