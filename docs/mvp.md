@@ -72,6 +72,8 @@ number was reached.
       locally and only aggregates committed.
 - [ ] `docs/report.md` generated from that run and readable by a non-technical
       risk owner without a walkthrough.
+- [x] An input path for an operator's own certificate estate, offline, so a
+      client engagement is not blocked on public data (sprint 9).
 - [ ] The active modality demonstrated against at least one host under the
       operator's control (T2, shared with MVP-A).
 - [ ] A stated position on what the engagement does *not* deliver, in the

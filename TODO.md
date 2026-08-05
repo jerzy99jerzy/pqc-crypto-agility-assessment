@@ -119,6 +119,18 @@ is answered in `docs/mvp.md`, not here.
 
 ## Decisions (human, not engineering)
 
+### T11 Inventory import (CMDB / OT scanner export)
+- Status: `blocked-external`
+- Blocker: no sample of a real export. A CSV or JSON schema designed without one
+  is a guess about somebody else's tool, and the mapping is the entire problem.
+- Sprint 9 built the seam this plugs into, so the work is a new source class
+  rather than a change to the collector.
+- Acceptance test: one real export file from a client or pilot parses into
+  `CertRecord` values, with every unrecognised algorithm resolving to `None`
+  rather than `False` (the sprint 6 failure mode, on a new input).
+
+---
+
 ### T10 License
 - Status: `done`, decided after sprint 7
 - Resolved to dual licensing: AGPL-3.0-only for community use, commercial
@@ -151,4 +163,5 @@ is answered in `docs/mvp.md`, not here.
 - Verified capability thresholds (GnuTLS, wolfSSL); packaging + console scripts; coverage floor in CI (sprint 5)
 - Correctness review of the shipped tree: tri-state algorithm identification (unknown is not post-quantum), version-truncation fix, IPv4 detection in the disclosure guard, `docs/mechanisms.md`, coverage floor 65 -> 70 (sprint 6)
 - NSS (3.118) and LibreSSL capability thresholds verified against primary sources; sourced-negative resolver path (`pqc_absent_through`) distinguishing a confirmed absence from unknown (sprint 7)
+- Source seam: `CrtShSource` and `LocalPemSource` behind one interface; aggregate reports the regime instead of constants; `reported` provenance for operator-supplied sets; suppression relaxed only for first-party estates (sprint 9)
 - Disclosure guard boundary defect (host identity adjacent to `_` matched nothing and passed both guards); filename allowlist derived from `git ls-files` for the prose scan, strict guard restored to zero filename exemptions (sprint 8)

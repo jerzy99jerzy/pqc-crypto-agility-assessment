@@ -307,3 +307,39 @@ Q-Day is the worked example of the last category: no arrival estimate for a
 cryptographically relevant quantum computer is used anywhere in the arithmetic.
 The model is anchored to a regulatory milestone, which is an observable fact,
 rather than to a forecast, which is not.
+
+
+## Sources and the regime they carry
+
+A source answers two questions, not one. Where do certificates come from, and
+what may be claimed about the set once they arrive.
+
+`CrtShSource` reads Certificate Transparency. Its records are `measured`: the
+log is an independent public record, and nobody in the commercial transaction
+chose what it contains. It is not first party, so sector buckets below the
+minimum size are suppressed.
+
+`LocalPemSource` reads a directory of PEM or DER files supplied by an operator.
+No network peer exists on this path at all. Host identity comes from the
+certificate subject and then from SAN, never from the filename: a filename is a
+label somebody typed, while the subject is inside the signed object. A file with
+neither is keyed `unidentified-<stem>`, because inventing a host to make the
+output tidy is exactly the failure this project exists to avoid.
+
+Its records are `reported`, and the distinction is narrow but load-bearing. Every
+certificate in the dump is parsed here, so the fields are measured in the
+ordinary sense. What is not measured is that the dump is the estate. That is a
+claim by the party commissioning the report, and the label sits at the level of
+the set rather than the field.
+
+First-party status is the only thing that relaxes minimum bucket size, and only
+a source may assert it. Suppression exists so that a third party cannot be
+identified through a sector of one; an operator paying for a report on their own
+estate has nobody to be protected from, and suppressing there would delete the
+deliverable while protecting no one. There is no argument that turns suppression
+off for CT data, and a test fails the build if one is added.
+
+Aggregation refuses a store holding records from more than one modality. A
+percentage across a public sample and the same percentage across one operator's
+declared estate are different statements, and summing them yields a number with
+no referent.

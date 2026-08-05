@@ -23,7 +23,13 @@ from cryptography.x509.oid import NameOID  # noqa: E402
 
 from collectors import crtsh as crtsh_mod  # noqa: E402
 from collectors.crtsh import CrtShClient, RateLimiter, select_current_leaves  # noqa: E402
-from collectors.passive_cert import collect_host  # noqa: E402
+from collectors.sources import CrtShSource  # noqa: E402
+
+
+def collect_host(client, host, sector, leaves):
+    """Sprint 9 moved this onto CrtShSource. The behaviour under test is
+    unchanged, so the test keeps its original shape through this adapter."""
+    return CrtShSource({}, client, leaves=leaves)._collect_host(host, sector)
 
 
 def _pem(cn: str, days: int = 90) -> bytes:

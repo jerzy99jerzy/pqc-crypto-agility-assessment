@@ -285,7 +285,8 @@ sector aggregation was supposed to protect.
 
 ```
 pqc-crypto-agility-assessment/
-├── collectors/          # Modality A: passive, third-party, public data only
+├── collectors/
+│   ├── sources.py       #   source seam: CT, offline PEM, and the regime each implies          # Modality A: passive, third-party, public data only
 │   ├── crtsh.py         #   CT client, rate limited, backoff, retry
 │   ├── certparse.py     #   X.509 dimension extraction, PQC OID aware
 │   ├── store.py         #   idempotent per-host store, atomic writes
@@ -561,6 +562,15 @@ allowlist that caused a red build every time a repository document was added is
 gone: permitted filenames are derived from the tracked file list, and admitted
 in the prose scan only, so the structural guard that collected data passes
 through keeps zero filename exemptions.
+
+Sprint 9: a source seam. The collector no longer assumes Certificate
+Transparency is the only way certificates arrive. An operator can supply a
+directory of their own certificates and get the same dimensions offline, with no
+network peer. What the sprint is actually about is the regime a source carries:
+CT is `measured` because the log is a public record nobody curated, while an
+operator's dump is `reported`, since we parse every certificate in it but the
+completeness of the set is the client's claim. Minimum bucket size relaxes only
+for a first-party estate and only because a source said so.
 
 Open items live in `TODO.md`, each with a status, a blocker where applicable,
 and an acceptance test. What *finished* means, which is a separate question,

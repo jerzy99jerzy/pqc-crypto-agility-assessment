@@ -3,6 +3,74 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.9.0] - 2026-08-05
+
+The collector stops being welded to Certificate Transparency. An operator can
+now hand over a directory of their own certificates and get the same analysis,
+offline, with no network peer at all.
+
+### Added
+- `collectors/sources.py`: a source seam. A source declares not only where
+  bytes come from but the regime that follows from it - `provenance`,
+  `modality`, and whether the estate is first party.
+- `LocalPemSource`: reads PEM and DER from a directory. Host identity is taken
+  from the certificate subject, falling back to SAN, never from the filename: a
+  filename is a label someone typed, the subject is part of the signed object.
+  A certificate with neither is keyed `unidentified-<stem>` rather than given an
+  invented host.
+- `CrtShSource`: the previous behaviour, unchanged, behind the same interface.
+- `--source {crtsh,local-pem}`, `--pem-dir`, `--sector` on `pqc-collect`.
+- `tests/test_sprint9.py`: 14 cases covering host derivation, per-host grouping,
+  the first-party regime, store compatibility, and the suppression invariant.
+
+### Changed
+- **The aggregate reports the regime it was produced under** instead of the
+  constants `measured` and `A_passive_public_ct`. A CT sample and an operator's
+  declared estate are different epistemic objects and the output now says which
+  one it is.
+- **New provenance value: `reported`.** Certificates in an operator's dump are
+  parsed by us, so their fields stay `measured`; the *completeness* of the set
+  is the client's claim and nothing observed. The label sits at the set level,
+  not the field level.
+- Minimum bucket size is relaxed only for a first-party estate, and only
+  because a source asserted it. Suppression protects a third party from being
+  identified through a sector of one; a paying operator has nobody to be
+  protected from, and suppression there would delete the deliverable. There is
+  deliberately no argument that disables suppression for CT data, and a test
+  fails the build if one appears.
+- Aggregation refuses a raw store holding more than one modality
+  (`MixedModalityError`) rather than summing them into a number with no
+  referent. An unrecognised modality tag resolves to the conservative row, and
+  a store written before this release still aggregates as passive CT.
+
+### Note
+This closes the gap between the repository and an external commitment: the
+offline first-party path was described before it existed.
+
+## [0.8.1] - 2026-08-04
+
+Documentation-only patch. No code changes; `collectors/`, `scoring/`,
+`inventory/`, `active/` and `reporting/` are byte-identical to 0.8.0.
+
+The 0.8.0 tag was cut before the codename and release criteria landed, so the
+published sdist and wheel carried a `README.md` without either. Rather than move
+a published tag, this releases the documentation state as a patch.
+
+### Added
+- Project codename **ANANKE** recorded in `README.md` (*On the name*, plus the
+  naming convention that keeps codenames out of the slug, package name and
+  console scripts), and in the headers of `methodology.md`, `mechanisms.md` and
+  `mvp.md`.
+- `docs/mvp.md`: release criteria for the three candidate audiences.
+- `CONTRIBUTING.md`: new documentation must be staged before `make verify`,
+  since the derived filename allowlist reads `git ls-files` and an untracked
+  file is deliberately not yet a known filename.
+
+### Verified
+- The derived allowlist resolves through `git ls-files` under GitHub Actions,
+  not only through the filesystem fallback used in local containers. Previously
+  an inference; now observed on a green run against the 0.8.0 tree.
+
 ## [0.8.0] - 2026-08-04
 
 Correctness sprint against the disclosure guard, the module that enforces the

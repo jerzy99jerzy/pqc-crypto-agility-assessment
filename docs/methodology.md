@@ -2,7 +2,8 @@
 
 Project codename: ANANKE. See `README.md` for the naming convention.
 
-Version 8.0, 2026-08-04. Sprint 8: the disclosure guard was blind to host
+Version 9.0, 2026-08-05. Sprint 9: source seam, and a fourth provenance value (`reported`) for data supplied by the party the report is for.
+Sprint 8: the disclosure guard was blind to host
 identity adjacent to an underscore; boundaries rewritten and the filename
 allowlist derived from the tracked file list instead of hand-maintained.
 Sprint 7: NSS (3.118) and LibreSSL capability
