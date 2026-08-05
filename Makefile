@@ -39,10 +39,13 @@ lint-sigma:      ## structural validation of the Sigma pack (needs pysigma)
 lint-spl:        ## structural discipline checks over the SPL pack
 	python tests/validate_spl.py
 
+lint-limitations: ## check the limitations section against the tree
+	python tests/lint_limitations.py
+
 lint-disclosure: ## scan committed artefacts for host identifiers
 	python tests/lint_disclosure.py
 
 validate:        ## scoring config: saturation, floors, weights, bands
 	pqc-score --validate-config
 
-verify: coverage lint-sigma lint-spl validate lint-disclosure  ## everything CI runs
+verify: coverage lint-sigma lint-spl validate lint-limitations lint-disclosure  ## everything CI runs

@@ -3,6 +3,27 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.13.1] - 2026-08-05
+
+### Added
+- **`make lint-limitations`**, wired into `verify`. Checks the README's "What
+  this assessment will not tell you" section against the tree, bidirectionally:
+  every bullet must be registered in `tests/lint_limitations.py` with probes,
+  and every registry entry must still have its bullet. `must_exist` probes
+  assert the code property that makes a claim true is present; `must_not_exist`
+  probes assert a denied capability has not appeared. Verified against all three
+  drift modes, including the historical one - the at-rest claim that went stale
+  when `pqc-keys`-style enumeration existed while the README denied it.
+- `CONTRIBUTING.md`: the principle behind the check. A claim the repository
+  makes about itself and a reader relies on should be executable, because a
+  sentence drifts silently and a test drifts loudly.
+
+### Why this is its own release
+The gap it closes was found by a user's question, not by review, and it is the
+one class of defect three code reviews structurally could not catch: divergence
+between the code and the repository's description of itself. The check now fails
+the build on it.
+
 ## [0.13.0] - 2026-08-05
 
 Cryptography at rest, and the correction of a claim this repository had been

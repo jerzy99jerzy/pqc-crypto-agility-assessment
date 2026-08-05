@@ -377,6 +377,23 @@ into anything destined for `data/aggregates/`. The guard had been described as
 enforcement of the scope statement for five sprints while missing a whole class
 of host identifier.
 
+### 9.2b Sprint 13: a claim is a test, not a sentence
+
+The most-read paragraph in the documentation was the least-checked. The "will
+not tell you" section claimed no visibility into cryptography at rest while a
+Key Vault enumeration query had shipped in sprint 4, and the contradiction
+survived three code reviews because each reviewed code and the divergence was
+between the code and the prose describing it. Found by a question rather than a
+review.
+
+`tests/lint_limitations.py` closes the class, not the instance: every
+limitation bullet is registered with probes and `make verify` fails on drift in
+either direction - an unregistered bullet, a removed one, a `must_exist`
+property gone, or a `must_not_exist` capability appeared. The general principle
+is recorded in `CONTRIBUTING.md`: a claim the repository makes about itself
+should be executable, because a sentence drifts silently and a test drifts
+loudly.
+
 ### 9.2 Sprint 8: a word boundary is not a name boundary
 
 `HOSTNAME_RE` and `IPV4_RE` were anchored on `\b`. `_` is a word character, so
