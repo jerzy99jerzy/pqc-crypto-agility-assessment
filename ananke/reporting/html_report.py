@@ -113,8 +113,13 @@ def render_html(sectors_payload: dict, scores_payload: dict | None,
 <tbody>{_counter_rows(agg.get("issuers", {}), n)}</tbody></table>
 """)
 
+    # A7 (threat model): validity date pairs are a quasi-identifier. On the
+    # reference estate every pair is unique, and CT is searchable by exactly
+    # those dates, so per-certificate segments would de-anonymise a third-party
+    # report. The chart renders for a first-party estate only, where the hosts
+    # belong to the commissioner and there is nobody to protect.
     chart = ""
-    if validity_pairs:
+    if validity_pairs and first_party:
         safe_pairs = [{"nb": esc(p["nb"])[:10], "na": esc(p["na"])[:10]}
                       for p in validity_pairs if "nb" in p and "na" in p]
         chart = f"""

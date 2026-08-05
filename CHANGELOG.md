@@ -3,6 +3,33 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.11.1] - 2026-08-05
+
+Threat-model review (v2.0) and the one code fix it produced.
+
+### Security
+- **A7, re-identification through quasi-identifiers.** The HTML horizon chart
+  embedded per-certificate validity date pairs on the assumption that dates
+  carry no identity. Measured on the reference estate, every `(not_before,
+  not_after)` pair is unique, and Certificate Transparency is searchable by
+  those fields, so the "anonymous" segments were a de-anonymisation oracle for
+  any host in CT. The chart now renders for first-party estates only, where the
+  hosts belong to the commissioner; a third-party report gets counts and bands,
+  never per-certificate segments. Pinned by a test.
+
+### Documentation
+- `docs/THREAT-MODEL.md` to version 2.0: every documented residual risk
+  re-probed against the code. Two corrected in the project's favour (punycode
+  IDNs, URLs-with-credentials, e-mail local parts and uppercase hosts are all
+  caught, not open as previously stated); the boundary map gains B5 (command
+  line) and B6 (the chart's raw-store read); A7 added; A8 records that the patch
+  delivery chain itself failed twice this week and gets a `MANIFEST.sha256`
+  control from sprint 12.
+
+### Known issues
+- T14: IPv6 literals bypass the structural guard. Found in this review, tracked
+  with an acceptance test, low exposure today.
+
 ## [0.11.0] - 2026-08-05
 
 The report becomes a decision document. Sprint 11 in three moves: the

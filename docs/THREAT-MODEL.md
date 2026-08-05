@@ -2,7 +2,10 @@
 
 Project codename: ANANKE.
 
-Version 1.0, 2026-08-05.
+Version 2.0, 2026-08-05. First periodic review, done the way the project
+demands: every documented residual risk re-probed against the current code
+rather than re-read. Two claims corrected in the project's favour, one new
+finding against it, three surfaces added to the boundary map.
 
 `docs/METHODOLOGY.md` covers what may be claimed from the data.
 `docs/MECHANISMS.md` covers how each mechanism works.
@@ -32,6 +35,8 @@ making the number it produces wrong in a direction somebody benefits from.
 | B2, offline estate | arbitrary bytes from a directory a third party assembled | same parser; host identity taken from the signed subject, never from the filename |
 | B3, configuration | `targets.yaml`, `weights.yaml`, allowlist | `--validate-config`; the allowlist is the only thing that authorises an active probe |
 | B4, committed output | sector aggregates, generated report, documentation prose | `assert_no_host_identifiers`, `assert_bucket_sizes`, prose lint in CI |
+| B5, command line | `--sector`, `--milestone`, `--pem-dir`, paths | sector shape-validated at source and re-checked at aggregation; milestone parsed as a date; paths never derived from data |
+| B6, chart data path | date pairs read from the raw store by the HTML renderer | the one sanctioned raw-store read outside collection; fields restricted to `not_before`/`not_after`; output re-scanned by the guard |
 
 ## Adversaries and what they attempt
 
@@ -52,9 +57,15 @@ boundaries by hand rather than relying on `\b`, and every fix carries a
 regression test, but the honest position is that this class is not closed. It is
 the first place to look when reviewing.
 
-Residual risk: a host identifier in a field the guard walks but does not
-recognise as host-shaped, for example an internationalised domain in punycode
-form, or a bare IPv6 literal. Documented rather than fixed.
+Residual risk, re-probed in the version 2.0 review: narrower than previously
+documented. Punycode IDNs (`xn--bank-8qa.pl`), URLs with credentials, e-mail
+local parts, uppercase hosts and trailing-dot FQDNs are all caught - the
+pattern matches them as ordinary labelled names, and the earlier claim that
+punycode escaped was wrong in the cautious direction. What actually escapes is
+IPv6, bare or bracketed: there is no IPV6_RE, and a `2a00:...` literal passes
+both guards today. Open, tracked as T14, and the honest position is that any
+estate exposing services on IPv6 literals cannot yet rely on the structural
+guard for them.
 
 The sprint 10 review added a variant that had already shipped: dictionary
 *keys*. The sector label supplied on the command line becomes a key in the
@@ -83,6 +94,29 @@ Residual risk: resource exhaustion through volume rather than size - a
 directory of millions of small valid certificates is processed one by one and
 bounded only by the operator's patience. Accepted: the operator chose the
 directory.
+
+### A7. Re-identification through quasi-identifiers
+
+Found by this review, and the sharpest open finding in the document. The HTML
+report embeds validity periods as bare date pairs for the horizon chart, on
+the reasoning that dates carry no identity. Measured on the 34-host reference
+estate, that reasoning fails: 100% of `(not_before, not_after)` pairs are
+unique, and Certificate Transparency is a public index searchable by exactly
+those fields. For any host present in CT, its date pair is a quasi-identifier,
+and a reader of a third-party sector report could recover the "anonymous"
+segments with one crt.sh query each.
+
+Severity is regime-dependent, which is why the control is a rule rather than a
+fix. For a first-party estate the pairs are the commissioner's own hosts and
+there is nobody to protect. For third-party modality A data the chart would be
+a de-anonymisation oracle. Rule: **the horizon chart renders for first-party
+aggregates only**; a modality A report gets counts and bands, never
+per-certificate segments. Enforced in the renderer, pinned by a test, and any
+future per-item visual for third-party data must answer this finding first.
+
+The general lesson generalises past the chart: suppression of names is not
+anonymisation of records. Any per-item field precise enough to be plotted is
+precise enough to be joined against a public index.
 
 ### A2. An adversary who poisons a public log
 
@@ -145,6 +179,22 @@ convention documented in `ananke/collectors/certparse.py`. It is listed as a
 security defect rather than a bug because the product of this pipeline is a
 number that somebody will budget against. Any new input path, including the
 inventory import in T11, must be reviewed against this specific failure mode.
+
+### A8. The delivery chain of the fixes themselves
+
+Process, not code, and it has failed twice in one week: patch sets transferred
+as hand-assembled archives twice arrived incomplete (the 0.8.1 documentation
+patch never landed; the 0.10.2 security patch landed without the file carrying
+the S3 fix), and the gap was caught late both times - once by a failing test
+after installation, once by inspecting the version string. A security fix that
+silently fails to arrive is worse than one not written, because the changelog
+then claims a protection the tree does not have.
+
+Control from sprint 12 onward: every patch archive carries a
+`MANIFEST.sha256` over all files changed since the last confirmed tag, and the
+verification step after unpacking is `shasum -c`, not visual inspection. The
+green CI run on the pushed commit remains the final arbiter of what a release
+actually contains.
 
 ## What this threat model does not cover
 

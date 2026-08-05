@@ -144,6 +144,19 @@ is answered in `docs/MVP.md`, not here.
 
 ---
 
+### T14 IPv6 literals bypass the disclosure guard
+- Status: `ready`
+- Found in the threat-model v2.0 review. `HOSTNAME_RE` and `IPV4_RE` cover
+  named hosts and dotted-quad addresses; a bare or bracketed IPv6 literal
+  (`2a00:1450:401b:80c::200e`) matches neither and passes both guards.
+- Low exposure today (a certificate SAN is rarely an IPv6 literal, and the
+  reference estate has none) but it is a real hole in the structural guard, so
+  it is tracked rather than left implicit.
+- Acceptance test: an IPv6 literal in a record value raises `DisclosureViolation`;
+  a version-like or time-like colon string (`12:34:56`) does not.
+
+---
+
 ### T11 Inventory import (CMDB / OT scanner export)
 - Status: `blocked-external`
 - Blocker: no sample of a real export. A CSV or JSON schema designed without one

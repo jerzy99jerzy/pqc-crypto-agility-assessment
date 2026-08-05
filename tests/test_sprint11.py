@@ -210,3 +210,22 @@ def test_embedded_data_scan_catches_a_smuggled_host():
     assert "victim-bank.pl" in _scan_embedded_data(evil)
     clean = "<script>const x=Date.UTC(2030,0);ms.value;</script>"
     assert _scan_embedded_data(clean) == []
+
+
+def test_horizon_chart_renders_for_first_party_only():
+    """A7: validity date pairs are a quasi-identifier joinable against CT.
+    The per-certificate chart is first-party only; a third-party report gets
+    counts, never segments."""
+    pairs = [{"nb": "2026-01-01", "na": "2033-01-01"}]
+
+    fp = _minimal_sectors()
+    fp["disclosure_policy"]["first_party_estate"] = True
+    assert "id=\"horizon\"" in render_html(fp, None, pairs)
+
+    tp = _minimal_sectors()
+    tp["provenance"] = "measured"
+    tp["modality"] = "A_passive_public_ct"
+    tp["disclosure_policy"]["first_party_estate"] = False
+    out = render_html(tp, None, pairs)
+    assert "id=\"horizon\"" not in out
+    assert "2033-01-01" not in out, "no per-certificate dates in a third-party report"
