@@ -1,6 +1,6 @@
 # PQC Crypto-Agility Assessment: Report
 
-Generated 2026-08-05 from committed aggregates. Host-level data was not read by this generator and is not available to it.
+Generated 2026-08-06 from committed aggregates. Host-level data was not read by this generator and is not available to it.
 
 ## 0. Provenance legend
 
@@ -15,37 +15,50 @@ A composite value inherits the weakest label of its inputs.
 
 ## 1. Selection and denominator
 
-**No selection manifest present.** No population figure is reported in this run, because a percentage without a stated denominator is not a finding. Run `collectors/select_targets.py` against a pinned public ranking to generate one.
+Source ranking `top-1m.csv`, SHA-256 `039d87d66a7ec215...`, 1000 rows in scope after filters `{'suffix': '.pl', 'top_rank': 138507}`. `[measured]`
+
+Classification ruleset `classification.yaml`, SHA-256 `a230c20c96b331cd...`. Unclassified: 861 rows. `[inference]`
+
+| Sector | Selected |
+|---|---:|
+| government | 47 |
+| education | 29 |
+| media | 26 |
+| retail | 12 |
+| telecom | 9 |
+| finance | 8 |
+| energy | 5 |
+| healthcare (below minimum bucket, suppressed downstream) | 2 |
+| legal (below minimum bucket, suppressed downstream) | 1 |
+
+**Classification ambiguity** `[measured]`: 4 domain(s) matched rules from more than one sector and were resolved by config order. Colliding rule sets, with counts:
+
+- `energy.contains:oze | media.contains:radio` : 1
+- `finance.contains:fundusz | government.suffix:.gov.pl` : 1
+- `government.contains:samorzad | media.contains:portal` : 1
+- `government.suffix:.gov.pl | media.contains:portal` : 1
+
+**Known sampling bias** `[inference]`: Resolver-traffic rankings overrepresent consumer-facing web properties and underrepresent APIs, B2B services and machine-to-machine endpoints. Long confidentiality horizons concentrate in the underrepresented population, so this sampling systematically undercounts the highest-HNDL assets. Stated here so the limitation travels with the numbers.
 
 ## 2. Measured certificate dimensions `[measured]`
 
-Modality: D_first_party_offline. Generated 2026-08-05T10:25:53.132864+00:00.
+Modality: A_passive_public_ct. Generated 2026-08-06T01:51:44.258452+00:00.
 
 | Sector | Hosts | With cert | Quantum-vulnerable key | Valid beyond 2030 | PQC indicators |
 |---|---:|---:|---:|---:|---:|
-| logistics | 34 | 34 | 34 (100%) | 14 (41%) | 0 |
+| education | 12 | 3 | 3 (100%) | 0 (0%) | 0 |
 
 Disclosure policy: sector granularity, minimum bucket 1, suppressed: none.
 
 Key algorithm distribution:
 
-- **logistics**: EC-secp256r1: 9, RSA-2048: 24, RSA-4096: 1
+- **education**: RSA-2048: 2, RSA-4096: 1
 
 _Certificate dimensions describe the served leaf certificate only. They say nothing about the negotiated TLS key exchange, and therefore nothing about PQC readiness of the key agreement. See README section 'What this assessment will not tell you'._
 
-## 3. HNDL exposure `[inference]`
+## 3. HNDL exposure
 
-Model version 1.1. Horizon pressure cap 25.59y (derived).
-
-| Sector | n | Exposure beyond milestone | Mean score | Bands |
-|---|---:|---:|---:|---|
-| logistics | 34 | 0.59y | 0.5949 | elevated: 20, moderate: 14 |
-
-_Certificate dimensions are measured. Sector confidentiality horizon is an assumption stated in scoring/weights.yaml. The composite score is an inference built from both and inherits the weaker label._
-
-Model configuration notes, reproduced rather than hidden:
-
-- **warning**: horizon_pressure floors at zero for: marketing, media. Expected where the horizon is shorter than the distance to the milestone: those sectors carry no HNDL exposure at all. They are not distinguishable from each other on this component, by construction.
+No scoring output present.
 
 ## 4. Active PQC demonstration
 

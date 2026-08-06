@@ -1,0 +1,72 @@
+{
+  "bias_provenance": "inference",
+  "classification": {
+    "ambiguity_note": "Domains matched by rules from more than one sector. Resolved by config order, first match wins. Counted here rather than resolved silently: a collision is a defect in the ruleset, and a ruleset that hides its collisions produces a denominator nobody can audit.",
+    "ambiguous_domains": 4,
+    "rule_collisions": {
+      "energy.contains:oze | media.contains:radio": 1,
+      "finance.contains:fundusz | government.suffix:.gov.pl": 1,
+      "government.contains:samorzad | media.contains:portal": 1,
+      "government.suffix:.gov.pl | media.contains:portal": 1
+    },
+    "rule_hits": {
+      "education.suffix:.edu.pl": 29,
+      "energy.contains:energ": 2,
+      "energy.contains:oze": 3,
+      "finance.contains:bank": 7,
+      "finance.contains:fundusz": 1,
+      "government.contains:samorzad": 2,
+      "government.suffix:.gov.pl": 44,
+      "government.suffix:.mil.pl": 1,
+      "healthcare.contains:zdrowie": 2,
+      "legal.contains:legal": 1,
+      "media.contains:gazeta": 5,
+      "media.contains:news": 4,
+      "media.contains:portal": 5,
+      "media.contains:radio": 9,
+      "media.contains:tvn": 3,
+      "none": 861,
+      "retail.contains:market": 3,
+      "retail.contains:moda": 1,
+      "retail.contains:shop": 2,
+      "retail.contains:sklep": 3,
+      "retail.contains:store": 3,
+      "telecom.contains:gsm": 2,
+      "telecom.contains:internet": 3,
+      "telecom.contains:mobile": 2,
+      "telecom.contains:orange": 1,
+      "telecom.contains:telekom": 1
+    },
+    "rules_file": "classification.yaml",
+    "rules_sha256": "a230c20c96b331cd609a442e1a3d2f6d9727a0641aa8e2b975a0266ea3a863f9",
+    "unclassified": 861
+  },
+  "filters": {
+    "suffix": ".pl",
+    "top_rank": 138507
+  },
+  "generated_at": "2026-08-06T01:35:48.165757+00:00",
+  "known_bias": "Resolver-traffic rankings overrepresent consumer-facing web properties and underrepresent APIs, B2B services and machine-to-machine endpoints. Long confidentiality horizons concentrate in the underrepresented population, so this sampling systematically undercounts the highest-HNDL assets. Stated here so the limitation travels with the numbers.",
+  "min_bucket_size": 5,
+  "provenance": "measured",
+  "sector_counts": {
+    "education": 29,
+    "energy": 5,
+    "finance": 8,
+    "government": 47,
+    "healthcare": 2,
+    "legal": 1,
+    "media": 26,
+    "retail": 12,
+    "telecom": 9
+  },
+  "source": {
+    "file_name": "top-1m.csv",
+    "file_sha256": "039d87d66a7ec2157413284ad9d9f004ff9844021637dbec69d5aa46eda365e0",
+    "rows_in_scope": 1000
+  },
+  "undersized_sectors": [
+    "healthcare",
+    "legal"
+  ]
+}

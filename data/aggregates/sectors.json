@@ -1,0 +1,55 @@
+{
+  "caveat": "Certificate dimensions describe the served leaf certificate only. They say nothing about the negotiated TLS key exchange, and therefore nothing about PQC readiness of the key agreement. See README section 'What this assessment will not tell you'.",
+  "disclosure_policy": {
+    "first_party_estate": false,
+    "granularity": "sector",
+    "min_bucket_size": 1,
+    "note": "host-level data stays in data/raw/ and is never committed",
+    "suppressed_sectors": []
+  },
+  "generated_at": "2026-08-06T01:51:44.258452+00:00",
+  "milestone": {
+    "date": "2030-12-31",
+    "note": "decision counters computed against this date"
+  },
+  "modality": "A_passive_public_ct",
+  "provenance": "measured",
+  "sectors": {
+    "education": {
+      "hosts_observed": 12,
+      "hosts_with_certificate": 3,
+      "intervention_expiry_years": {},
+      "intervention_required": 0,
+      "issuers": {
+        "Let's Encrypt": 3
+      },
+      "key_algorithms": {
+        "RSA-2048": 2,
+        "RSA-4096": 1
+      },
+      "pqc_indicators_observed": 0,
+      "quantum_vulnerable_key": {
+        "True": 3
+      },
+      "rotation_bands": {
+        "<=100d": 3
+      },
+      "rotation_stats": {
+        "max": 89,
+        "median": 89,
+        "min": 89,
+        "rotations_before_milestone": 18.07
+      },
+      "self_resolving_via_rotation": 3,
+      "signature_algorithms": {
+        "sha256WithRSAEncryption": 3
+      },
+      "valid_beyond_milestone": {
+        "False": 3
+      },
+      "validity_days_buckets": {
+        "<=90d": 3
+      }
+    }
+  }
+}
