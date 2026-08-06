@@ -3,6 +3,40 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.15.0] - 2026-08-06
+
+The first passive run against a real target set, and a competitive review that
+changed what the project may claim about itself. No behaviour changed in this
+release; what changed is what is written down.
+
+### Added
+- **`docs/FIELD-RUN.md`.** Protocol for running against real infrastructure,
+  plus the record of the 2026-08-06 run: 139 domains selected across nine
+  sectors, collection complete for one. Three things appeared that no fixture
+  predicts: hosts observed without any certificate in CT, a partial collection
+  that is indistinguishable from CT silence in the aggregate, and a suppression
+  threshold that can differ between the selection and aggregation invocations
+  without anything noticing. The crt.sh failure modes were not captured, because
+  the run was not put under `tee`. That gap is recorded rather than guessed at,
+  and is why the protocol now makes capture mandatory.
+- **`docs/COMPETITORS.md`.** A first-pass review of what else exists. The
+  collection layer is commodity, the ownership-attestation and scope-guard
+  posture has been implemented independently elsewhere, and a CT-derived sector
+  posture finding is already published. What the review left standing is the
+  detection layer and one unclaimed idea. Recorded because the market-value
+  brief asserted uniqueness without ever having looked.
+- **`docs/ROTATION-CADENCE.md`.** Issuance cadence as a migration-capability
+  proxy, proposed and not implemented. Includes the reason the obvious form of
+  it breaks: maximum certificate validity is being cut on a published schedule,
+  so a short interval will soon distinguish nothing, and the durable signal is
+  dispersion and gaps rather than the interval itself.
+- `runs/` added to `.gitignore`. Run logs carry host names.
+
+### Changed
+- `docs/report.md` regenerated from the first real aggregate rather than from
+  fixture data.
+- README repository map extended with the three new documents.
+
 ## [0.14.3] - 2026-08-05
 
 `lint-layout` failed in CI a second time, on `data/raw`, and the interesting
