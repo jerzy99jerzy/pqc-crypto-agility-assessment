@@ -3,6 +3,38 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.15.1] - 2026-08-06
+
+Two corrections to the record, and one defect the first real run exposed in the
+gate itself.
+
+### Fixed
+- **The layout check's gitignore exemption applied in one direction only.**
+  v0.14.3 derived the exemption from `.gitignore` for paths the map draws but
+  the tree lacks, and left the opposite direction reading a hand-enumerated
+  `SKIP_PARTS`. `runs/`, added in 0.15.0 to hold run logs, is git-ignored,
+  was not in that literal set, and broke `make verify` the moment a run
+  directory existed on disk. The same rule now reads both ways: if the
+  repository ignores a path, the map is not expected to draw it. This is the
+  third time an enumerated exemption has failed and the second time the
+  derived fix was applied to only half the problem.
+
+### Corrected
+- **The 0.15.0 entry said the sector aggregate and the report were not
+  committed. They were.** `data/aggregates/sectors.json`,
+  `data/aggregates/selection_manifest.json` and the regenerated
+  `docs/report.md` landed in `ca7ffad`, one commit before the version bump
+  that claimed their absence. The intent stated in 0.15.0 was real and the
+  execution did not match it. Nothing was suppressed in that aggregate,
+  education clears any threshold under discussion and `lint-disclosure`
+  passes, so no disclosure occurred. What was wrong is the record. The tag is
+  not moved and the history is not rewritten; the correction lives here,
+  which is what a changelog is for.
+- The aggregate stays in the tree rather than being removed, because deleting
+  it from `HEAD` would leave it in history at `ca7ffad` while making the
+  record harder to read, not easier. It carries `min_bucket_size: 1` against a
+  manifest that records 5, and that divergence is the first item in sprint 15.
+
 ## [0.15.0] - 2026-08-06
 
 The first passive run against a real target set, and a competitive review that
@@ -33,9 +65,19 @@ release; what changed is what is written down.
 - `runs/` added to `.gitignore`. Run logs carry host names.
 
 ### Changed
-- `docs/report.md` regenerated from the first real aggregate rather than from
-  fixture data.
 - README repository map extended with the three new documents.
+
+### Not included
+- The 2026-08-06 sector aggregate and the report generated from it are
+  deliberately not committed. The aggregate records `min_bucket_size: 1` while
+  the selection manifest records 5, and nothing reconciles the two invocations.
+  Nothing was actually suppressed and the guard passes, so no disclosure
+  occurred; the aggregate is withheld because publishing numbers under a
+  disclosure policy the project cannot state consistently is the wrong
+  precedent to set in the git history. The run is recorded in
+  `docs/FIELD-RUN.md`, where the divergence is the finding rather than the
+  footnote. The aggregate lands after the threshold is reconciled and the
+  collection is complete.
 
 ## [0.14.3] - 2026-08-05
 
