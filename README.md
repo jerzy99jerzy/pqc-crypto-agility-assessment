@@ -390,6 +390,7 @@ pqc-crypto-agility-assessment/
 │   ├── test_sprint12.py      #   cross-check asymmetry, SPL discipline
 │   ├── test_sprint13.py      #   at-rest keys, two clocks
 │   ├── test_sprint14.py      #   IPv6 and byte-string guard bypasses
+│   ├── test_sprint15.py      #   layout exemption, derived both ways
 │   ├── validate_sigma.py     # executable checks on the repo itself
 │   ├── validate_spl.py
 │   ├── lint_disclosure.py

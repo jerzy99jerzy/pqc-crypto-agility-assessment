@@ -92,6 +92,22 @@ def _git_ignores(name: str) -> bool:
     return False
 
 
+def _git_ignores_path(rel: Path) -> bool:
+    """True when git ignores this exact relative path.
+
+    `_git_ignores` probes a bare name against a few likely parents, which is
+    what the drawn-but-absent direction needs: the path is gone, so there is no
+    real path to ask about. Here the path exists, so ask about it directly.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "check-ignore", "-q", str(rel)],
+            capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0
+
+
 def _mapped_names() -> set[str]:
     block = MAP_RE.search(README.read_text(encoding="utf-8"))
     if not block:
@@ -110,6 +126,13 @@ def _expected_names() -> set[str]:
         if SKIP_PARTS & set(parts) or "egg-info" in str(rel):
             continue
         if any(str(rel).startswith(s + "/") for s in SUMMARISED):
+            continue
+        # Git-ignored output directories are not part of the map. v0.14.3
+        # derived this exemption from gitignore for the drawn-but-absent
+        # direction and left this one enumerated in SKIP_PARTS, so the first
+        # ignored directory nobody had thought to enumerate (`runs/`) broke the
+        # gate. Same rule, both directions.
+        if _git_ignores_path(rel):
             continue
         if path.is_dir():
             if not parts[0].startswith("."):
