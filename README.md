@@ -369,6 +369,9 @@ pqc-crypto-agility-assessment/
 │   ├── MVP.md                #   release criteria per audience, definition of done
 │   ├── THREAT-MODEL.md       #   adversaries against the guard and the number
 │   ├── DECISIONS.md          #   rejected options, and what would reopen each
+│   ├── COMPETITORS.md        #   what else exists, and what that leaves standing
+│   ├── ROTATION-CADENCE.md   #   issuance cadence as a capability proxy, proposed
+│   ├── FIELD-RUN.md          #   first real run: protocol and observed failures
 │   └── report.md             #   generated
 ├── tests/
 │   ├── conftest.py           # puts repo root on sys.path once
