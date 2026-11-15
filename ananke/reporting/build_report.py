@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """Build the assessment report from committed aggregates.
 
-Reads only data/aggregates/. It has no access to the raw host-level store, by
-construction rather than by discipline: a report generator that cannot read
-host data cannot leak host data.
+The markdown report reads data/aggregates/ only. The HTML format makes one
+further read: `_validity_pairs` takes not_before/not_after date pairs from the
+raw store for the horizon chart, which the renderer embeds for a first-party
+estate only (docs/THREAT-MODEL.md, A7 and boundary B6). Until 0.15.2 this
+docstring said the module had no access to the raw store by construction,
+which stopped being true when the chart shipped in 0.11.0.
 
-Before writing, the rendered markdown is scanned for anything resembling a
+Before writing, the rendered output is scanned for anything resembling a
 hostname. Hosts declared in config/reference_hosts.yaml are permitted, since
 naming a positive control is part of the method. Anything else fails the build.
 
 Usage:
-    python reporting/build_report.py
-    python reporting/build_report.py --out docs/report.md
+    pqc-report
+    pqc-report --out docs/report.md
+    pqc-report --format html
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 from ananke.collectors.disclosure import DisclosureViolation, scan_text  # noqa: E402
+from ananke.reporting.limitations import LIMITATIONS  # noqa: E402
 
 log = logging.getLogger("build_report")
 AGG_DIR = REPO_ROOT / "data" / "aggregates"
@@ -36,19 +41,16 @@ AGG_DIR = REPO_ROOT / "data" / "aggregates"
 LEGEND = """| Label | Meaning |
 |---|---|
 | `[measured]` | Read from a certificate, a handshake or a log, without interpretation |
+| `[reported]` | Supplied by the party the report is for; fields parsed here, completeness is their claim |
 | `[inference]` | Derived from observable proxies |
 | `[assumption]` | Chosen by the analyst, defensible but not observed |
 | `[speculation]` | Explicitly uncertain, carried through rather than resolved |
 
 A composite value inherits the weakest label of its inputs."""
 
-NOT_TOLD = """- Cryptography at rest.
-- HSMs.
-- Internal PKI, except indirectly through endpoint certificate inventory in the detection layer.
-- Code, embedded libraries, pinned certificates inside applications.
-- The negotiated key exchange group of third-party services. That is not observable from certificate data and would require an active handshake, which is not performed against third-party estate.
-
-A certificate using RSA says nothing about whether the same service already negotiates a hybrid group. Different layers. Conflating them is the most common error in this space."""
+# Rendered from the shared list, so the report cannot keep a limitation the
+# README has retired. See ananke/reporting/limitations.py for the defect.
+NOT_TOLD = "\n".join(f"- {sentence}" for _, sentence in LIMITATIONS)
 
 
 def load(name: str) -> dict | None:
@@ -80,8 +82,8 @@ def section_selection(manifest: dict | None) -> str:
             "## 1. Selection and denominator\n\n"
             "**No selection manifest present.** No population figure is reported in "
             "this run, because a percentage without a stated denominator is not a "
-            "finding. Run `collectors/select_targets.py` against a pinned public "
-            "ranking to generate one.\n"
+            "finding. Run `pqc-select` against a pinned public ranking to "
+            "generate one.\n"
         )
     src, cls = manifest["source"], manifest["classification"]
     lines = [
@@ -226,7 +228,7 @@ def section_capability(cap: dict | None) -> str:
     if not cap:
         return (
             "## 5. Endpoint crypto capability\n\n"
-            "No capability analysis present. Run `inventory/pqc_capability.py` "
+            "No capability analysis present. Run `pqc-capability --inventory` "
             "against a software inventory export to answer the question that "
             "gates the plan: on how many hosts is the crypto stack capable of a "
             "hybrid key exchange at all.\n"
@@ -270,8 +272,7 @@ def build() -> str:
         "# PQC Crypto-Agility Assessment: Report",
         "",
         f"Generated {dt.datetime.now(dt.UTC).date().isoformat()} from committed "
-        "aggregates. Host-level data was not read by this generator and is not "
-        "available to it.",
+        "aggregates. Host-level data was not read for this report.",
         "",
         "## 0. Provenance legend",
         "",

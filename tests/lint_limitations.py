@@ -38,6 +38,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
+sys.path.insert(0, str(ROOT))
+
+# The short form both report renderers print. Checked against the registry
+# below, because until 0.15.2 the reports carried their own copy of this list
+# and it kept a claim the README had retired (see the module docstring there).
+from ananke.reporting.limitations import LIMITATIONS  # noqa: E402
 
 SECTION_START = "## What this assessment will not tell you"
 SECTION_END = re.compile(r"^## (?!What this assessment)")
@@ -131,6 +137,25 @@ def _probe_exists(pattern: str, regex: str) -> bool:
     return False
 
 
+def report_list_failures(report_list: tuple[tuple[str, str], ...]) -> list[str]:
+    """Keys of the report list must equal the registry's claim keys, both ways."""
+    report_keys = [key for key, _ in report_list]
+    registry_keys = [entry["claim"] for entry in REGISTRY]
+    failures = []
+    for key in registry_keys:
+        if key not in report_keys:
+            failures.append(
+                f"registered limitation missing from the report list: {key!r} - "
+                "add it to ananke/reporting/limitations.py, or the generated "
+                "report claims less than the README")
+    for key in report_keys:
+        if key not in registry_keys:
+            failures.append(
+                f"report list entry with no registered README bullet: {key!r} - "
+                "the report would print a limitation nothing checks")
+    return failures
+
+
 def main() -> int:
     bullets = _bullets()
     failures: list[str] = []
@@ -166,6 +191,9 @@ def main() -> int:
                     f"claim {entry['claim']!r}: contradicted - /{regex}/ found "
                     f"under {pattern}. The capability this bullet denies now "
                     "exists; rewrite the bullet before the build goes green")
+
+    # 3. the reports print the same list the README registers
+    failures += report_list_failures(LIMITATIONS)
 
     for f in failures:
         print(f"FAIL  {f}")

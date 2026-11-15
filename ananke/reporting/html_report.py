@@ -1,7 +1,11 @@
 """HTML rendering of the assessment report.
 
-Same inputs as the markdown renderer: committed aggregates only, never the raw
-store. The renderer cannot leak what it cannot read.
+Inputs are the committed aggregates plus, for the horizon chart, the
+not_before/not_after date pairs `build_report._validity_pairs` reads from the
+raw store. The pairs are embedded for a first-party estate only, because on a
+third-party estate they are a quasi-identifier (docs/THREAT-MODEL.md, A7).
+Until 0.15.2 this docstring said the renderer never saw the raw store, which
+was not true of the chart path from the release that added it.
 
 Three rules, in priority order:
 
@@ -23,6 +27,8 @@ from __future__ import annotations
 
 import html
 import json
+
+from ananke.reporting.limitations import LIMITATIONS
 
 
 def esc(value: object) -> str:
@@ -71,7 +77,7 @@ def render_html(sectors_payload: dict, scores_payload: dict | None,
             f"<tr><td>{esc(y)}</td><td class='n'>{c}</td></tr>"
             for y, c in sorted(agg.get("intervention_expiry_years", {}).items()))
         sections.append(f"""
-<h2><span class="num">sector — {esc(sector)}</span>The split a plan is built from</h2>
+<h2><span class="num">sector · {esc(sector)}</span>The split a plan is built from</h2>
 <div class="split">
   <div class="cell g">
     <div><span class="big">{resolve}</span><span class="pct">{esc(f"{100*resolve/n:.0f}%" if n else "n/a")}</span></div>
@@ -141,17 +147,22 @@ const MS_DEFAULT={ms_year};
 {_CHART_JS}
 </script>"""
 
-    limits = """
+    inputs_note = ("Aggregates, plus certificate validity dates for the horizon chart."
+                   if chart else
+                   "Aggregates only; host-level data was not read for this report.")
+
+    # The two engagement items are specific to this deliverable. The rest is the
+    # shared list, so the HTML report cannot keep a limitation the README has
+    # retired (ananke/reporting/limitations.py).
+    method_limits = "".join(f"\n  <li>{esc(sentence)}</li>" for _, sentence in LIMITATIONS)
+    limits = f"""
 <h2><span class="num">limits</span>What this assessment does not tell you</h2>
 <ul class="limits">
   <li><strong>Whether these hosts can negotiate a hybrid key exchange at all.</strong>
   That needs a software inventory export. Until provided, the replacement plan
   cannot be costed.</li>
   <li><strong>Whether the supplied estate is complete.</strong> Fields are
-  measured; completeness of the set is <span class="chip">reported</span>.</li>
-  <li>Cryptography at rest, HSMs, internal PKI, pinned certificates.</li>
-  <li>A certificate using RSA says nothing about the negotiated key exchange.
-  Different layers.</li>
+  measured; completeness of the set is <span class="chip">reported</span>.</li>{method_limits}
 </ul>"""
 
     return f"""<!DOCTYPE html>
@@ -162,7 +173,7 @@ const MS_DEFAULT={ms_year};
 <header>
   <div class="eyebrow">ANANKE · generated {generated} · modality {modality} · provenance {provenance}</div>
   <h1>Crypto-agility assessment</h1>
-  <p class="sub">Aggregates only; host-level data was not read by this renderer.
+  <p class="sub">{inputs_note}
   Milestone: {esc(milestone)}{" · first-party estate" if first_party else ""}.</p>
 </header>
 {"".join(sections)}
