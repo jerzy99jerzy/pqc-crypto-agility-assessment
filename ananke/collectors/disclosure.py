@@ -166,6 +166,32 @@ _PROSE_INFRASTRUCTURE = frozenset({
     "github.com", "raw.githubusercontent.com", "badge.svg", "shields.io",
 })
 
+# Hosts of the standards bodies and publishers the documentation cites. Until
+# 0.15.3 no document in this repository linked a source, because this scan
+# rejected every hostname in prose, and a provenance project that cannot link
+# its sources asks the reader to take them on trust.
+#
+# Same terms as the infrastructure set above: prose only, exact names, reviewed
+# by hand. A citation host inside a collected record is still a host
+# identifier and still fails the structural guard. An entry stays only while a
+# tracked document links it, because an allowlist that accumulates names
+# nobody uses reads as coverage it does not have.
+_PROSE_CITATIONS = frozenset({
+    "www.rfc-editor.org",              # RFCs
+    "datatracker.ietf.org",            # Internet-Drafts
+    "csrc.nist.gov",                   # FIPS 203/204/205, NIST signature process
+    "eur-lex.europa.eu",               # Recommendation (EU) 2024/1101
+    "digital-strategy.ec.europa.eu",   # EU coordinated implementation roadmap
+    "cabforum.org",                    # Ballot SC-081v3
+    "letsencrypt.org",                 # short-lived certificate profile
+    "eprint.iacr.org",                 # cryptanalysis and measurement papers
+    "arxiv.org",                       # measurement papers
+    "www.anthropic.com",               # HAWK key-recovery announcement
+    "groups.google.com",               # NIST pqc-forum thread
+    "list.nist.gov",                   # the forum's list domain, inside that URL
+    "docs.paloaltonetworks.com",       # vendor PQC detection documentation
+})
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -259,6 +285,8 @@ def _is_allowed(
     if repo_files and t in _repo_file_tokens():
         return True
     if repo_files and t in _PROSE_INFRASTRUCTURE:
+        return True
+    if repo_files and t in _PROSE_CITATIONS:
         return True
     # Version strings such as 3.5.0 and OpenSSL 3.0.13 are not hostnames.
     return all(part.isdigit() for part in t.split("."))

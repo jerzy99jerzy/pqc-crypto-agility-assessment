@@ -132,3 +132,47 @@ def test_limitations_lint_fails_when_report_list_and_registry_disagree():
     assert lint.report_list_failures(LIMITATIONS[1:]), "a missing entry must fail"
     extra = LIMITATIONS + (("Nothing registers this claim", "Unchecked."),)
     assert lint.report_list_failures(extra), "an unregistered entry must fail"
+
+
+# --------------------------------------------------------------------------- #
+# 0.15.3: citation hosts in the prose scan, and nowhere else
+# --------------------------------------------------------------------------- #
+def test_a_cited_source_passes_the_prose_scan():
+    """No document linked a source before 0.15.3: the prose scan rejected every
+    hostname, so citations were names and dates a reader could not follow."""
+    from ananke.collectors.disclosure import scan_text
+
+    text = ("Identifiers per [RFC 9881](https://www.rfc-editor.org/rfc/rfc9881), "
+            "attack in [ePrint 2026/1593](https://eprint.iacr.org/2026/1593).")
+    assert scan_text(text) == []
+
+
+def test_citation_hosts_still_fail_the_structural_guard():
+    """The admission is prose-only. A citation host inside collected data is a
+    host identifier like any other."""
+    from ananke.collectors.disclosure import (
+        _PROSE_CITATIONS,
+        DisclosureViolation,
+        assert_no_host_identifiers,
+    )
+
+    for host in sorted(_PROSE_CITATIONS):
+        with pytest.raises(DisclosureViolation):
+            assert_no_host_identifiers({"source": f"https://{host}/x"})
+
+
+def test_citation_entries_are_tokens_the_scanner_produces():
+    """An entry the regex can never yield is dead weight (the sprint 8 lesson
+    about ALLOWED_TOKENS). Each one must come back whole from a URL."""
+    from ananke.collectors.disclosure import _PROSE_CITATIONS, HOSTNAME_RE
+
+    for host in sorted(_PROSE_CITATIONS):
+        assert HOSTNAME_RE.findall(f"see https://{host}/path") == [host]
+
+
+def test_citation_admission_is_exact_not_by_suffix():
+    """A host that merely contains a cited name is not a citation."""
+    from ananke.collectors.disclosure import scan_text
+
+    assert scan_text("https://www.rfc-editor.org.attacker.pl/rfc9881") != []
+    assert scan_text("https://mirror-eprint.iacr.org.example.pl/") != []
