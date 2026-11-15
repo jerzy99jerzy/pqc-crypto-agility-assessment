@@ -3,6 +3,45 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.15.2] - 2026-11-15
+
+The package described itself wrongly in three places a reader meets: the
+limitations the generated report prints, the report builder's account of what
+it reads, and the version string. No aggregate, score or verdict changed.
+
+### Fixed
+- **The generated report still printed the at-rest claim 0.13.0 retracted.**
+  `build_report.py` and `html_report.py` each kept a private copy of the
+  limitations list, and both still opened with "Cryptography at rest." and
+  "HSMs." after the README section was rewritten as four layers and registered
+  in `tests/lint_limitations.py`. The lint read the README only, so the copy a
+  client receives stayed wrong in 0.13.0 and the seven tagged releases after it.
+  Both renderers now print `ananke/reporting/limitations.py`, and
+  `make lint-limitations` fails when that list and the README registry
+  disagree in either direction.
+- **The report builder's docstring denied a read it makes.** It said the module
+  had no access to the raw store by construction. Since 0.11.0 the HTML path
+  reads `not_before`/`not_after` pairs from the store for the horizon chart,
+  which is embedded for first-party estates only, and the HTML header said
+  "host-level data was not read by this renderer" when the chart was present.
+  Both now state the read. The behaviour is unchanged and was already recorded
+  correctly as boundary B6 in `docs/THREAT-MODEL.md`.
+- **`ananke.__version__` said 0.10.0 in the twelve tagged releases after
+  0.10.0.** It was a literal nobody bumped, and the CI tag check compares the
+  tag with `pyproject.toml` only. It is now read from the installed
+  distribution, so the version is written in one place.
+- The markdown report's provenance legend omitted `reported`, and two of its
+  "no data" hints named script paths removed in 0.10.0. They now name
+  `pqc-select` and `pqc-capability`.
+
+### Changed
+- `docs/report.md` regenerated from the same committed aggregates. Only the
+  generator's text differs.
+
+### Verified
+- The five new cases in `tests/test_sprint15.py` fail against v0.15.1 and pass
+  here. `make verify`: 277 passed, coverage 80.10%.
+
 ## [0.15.1] - 2026-08-06
 
 Two corrections to the record, and one defect the first real run exposed in the
