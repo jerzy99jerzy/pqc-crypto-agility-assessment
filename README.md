@@ -348,8 +348,9 @@ pqc-crypto-agility-assessment/
 │   ├── inventory/
 │   │   └── pqc_capability.py #   software inventory -> capability verdicts, version aware
 │   └── reporting/
-│       ├── build_report.py   #   aggregates -> docs/report.md, cannot read raw data
-│       └── html_report.py    #   single file, no network, chart gated to first-party
+│       ├── build_report.py   #   aggregates -> docs/report.md; HTML chart reads date pairs
+│       ├── html_report.py    #   single file, no network, chart gated to first-party
+│       └── limitations.py    #   the limits both reports print, checked against README
 ├── detection/
 │   ├── sigma/                #   Zeek and Windows inventory rules
 │   ├── kql/                  #   Defender, Sentinel, Resource Graph queries
