@@ -162,8 +162,12 @@ _UNTRACKED_SCAN_SKIP = {
 # Prose only, and separate from ALLOWED_TOKENS on purpose. `github.com` in a
 # collected record is a host identifier like any other and must still fail the
 # structural guard; `github.com` in README is where this repository lives.
+#
+# `raw.githubusercontent.com` and `shields.io` were listed here from sprint 10
+# to 0.15.4 and no document ever named either. They came off when the prose
+# lint started failing on unused entries; a badge that needs one adds it back.
 _PROSE_INFRASTRUCTURE = frozenset({
-    "github.com", "raw.githubusercontent.com", "badge.svg", "shields.io",
+    "github.com", "badge.svg",
 })
 
 # Hosts of the standards bodies and publishers the documentation cites. Until
@@ -173,9 +177,10 @@ _PROSE_INFRASTRUCTURE = frozenset({
 #
 # Same terms as the infrastructure set above: prose only, exact names, reviewed
 # by hand. A citation host inside a collected record is still a host
-# identifier and still fails the structural guard. An entry stays only while a
-# tracked document links it, because an allowlist that accumulates names
-# nobody uses reads as coverage it does not have.
+# identifier and still fails the structural guard. `tests/lint_prose.py` fails
+# the build on an entry no tracked document needs, in this set and the one
+# above, because an allowlist that accumulates names nobody uses reads as
+# coverage it does not have.
 _PROSE_CITATIONS = frozenset({
     "www.rfc-editor.org",              # RFCs
     "datatracker.ietf.org",            # Internet-Drafts

@@ -261,8 +261,9 @@ defaulting to either verdict.
 
 Planning documents also use `[estimate]` for a figure sized but not verified,
 and `[not found]` for something searched for and not located, which is weaker
-than absent. Status markers such as `[verify]`, `[todo]`, `[done]` and
-`[deferred]` track work, not evidence.
+than absent. Status markers, `[verify]`, `[todo]`, `[done]`, `[deferred]` and
+`[unknown]`, track work, not evidence. This is the whole set, and
+`tests/lint_prose.py` fails the build on a bracketed label outside it.
 
 Ambivalent signals stay open. Where a result could be a collection artefact or
 a real change in posture, the record says so instead of picking the tidier
@@ -456,12 +457,13 @@ pqc-crypto-agility-assessment/
 │   ├── test_sprint12.py      #   cross-check asymmetry, SPL discipline
 │   ├── test_sprint13.py      #   at-rest keys, two clocks
 │   ├── test_sprint14.py      #   IPv6 and byte-string guard bypasses
-│   ├── test_sprint15.py      #   layout exemption, report drift, version, citations
+│   ├── test_sprint15.py      #   layout exemption, report drift, version, citations, prose lint
 │   ├── validate_sigma.py     # executable checks on the repo itself
 │   ├── validate_spl.py
 │   ├── lint_disclosure.py
 │   ├── lint_limitations.py
-│   └── lint_layout.py
+│   ├── lint_layout.py
+│   └── lint_prose.py
 ├── README.md
 ├── ENGINEERING.md            # portable standard, every rule traced to a defect
 ├── CONTRIBUTING.md           # invariants a contributor must not break
