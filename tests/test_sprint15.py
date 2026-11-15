@@ -1,4 +1,6 @@
-"""Sprint 15: the layout check's gitignore exemption, applied both ways."""
+"""Sprint 15 and its patch releases: the layout exemption applied both ways
+(0.15.1), report drift and the version string (0.15.2), citation hosts in
+prose (0.15.3), and the prose lint (0.15.4)."""
 import subprocess
 
 import pytest
@@ -176,3 +178,105 @@ def test_citation_admission_is_exact_not_by_suffix():
 
     assert scan_text("https://www.rfc-editor.org.attacker.pl/rfc9881") != []
     assert scan_text("https://mirror-eprint.iacr.org.example.pl/") != []
+
+
+# --------------------------------------------------------------------------- #
+# 0.15.4: the prose lint, and the disclosure scan over every tracked document
+# --------------------------------------------------------------------------- #
+EM_DASH = chr(0x2014)  # built from its code point, so this file passes the lint
+TICK = "`"
+
+
+def _span(label: str) -> str:
+    return TICK + "[" + label + "]" + TICK
+
+
+def test_em_dash_and_the_escapes_that_render_one_fail_the_prose_lint():
+    """By 0.15.1 the tree held 28, one in the heading of every sector section of
+    the HTML report. An escape counts because the reports are not tracked."""
+    import tests.lint_prose as lint
+
+    assert lint.em_dash_failures({"a.md": "one" + EM_DASH + "two"}) == ["a.md:1: em-dash"]
+    for escape in ("\\" + "u2014", "\\" + "N{EM DASH}", "&" + "mdash;", "&#" + "8212;"):
+        assert lint.em_dash_failures({"r.py": f'x = "{escape}"'}), escape
+    # The rule is the em-dash. A hyphen and an en-dash are ordinary punctuation.
+    assert lint.em_dash_failures({"a.md": "pp. 3-5, 2020" + chr(0x2013) + "2026"}) == []
+
+
+def test_a_label_outside_the_closed_set_fails_the_prose_lint():
+    """Three documents stated the label set differently until 0.15.3."""
+    import tests.lint_prose as lint
+
+    good = " ".join(_span(x) for x in (
+        "measured", "not found, which is weak evidence of absence",
+        "measured, verified 2026-08-06", "unknown"))
+    assert lint.label_failures({"a.md": good, "b.py": good}) == []
+    assert lint.label_failures({"b.py": _span("estimated")}), "not in the set"
+    assert lint.label_failures({"a.md": _span("Measured")}), "case is part of the label"
+    assert lint.label_failures({"a.md": "the figure [guess] stands"}), "bare, in markdown"
+
+
+def test_links_checkboxes_headings_and_code_are_not_labels():
+    """The bare form is checked in markdown only, and only where it can be
+    nothing else."""
+    import tests.lint_prose as lint
+
+    text = ("[a link](https://github.com/x), [text][ref] and ![alt](a.png)\n"
+            "- [x] done\n- [ ] open\n"
+            "## [Unreleased]\n"
+            "```\nif seen[label]: pass\n```\n")
+    assert lint.label_failures({"a.md": text}) == []
+    assert lint.label_failures({"a.py": "seen[label] = [guess]"}) == []
+
+
+def test_readme_states_the_label_set_the_lint_enforces():
+    """The set is written once, in the README's Provenance convention, and the
+    lint's copy is held to it."""
+    import tests.lint_prose as lint
+
+    readme = (lint.ROOT / "README.md").read_text(encoding="utf-8")
+    section = readme.split("## Provenance convention", 1)[1].split("\n## ", 1)[0]
+    assert {m.group(1) for m in lint.SPAN_LABEL_RE.finditer(section)} == lint.VOCABULARY
+
+
+def test_an_allowlist_entry_no_document_needs_fails_the_prose_lint():
+    """Two infrastructure hosts were unused from sprint 10, when they were added,
+    to 0.15.4."""
+    import tests.lint_prose as lint
+
+    docs = {"a.md": "Per [RFC 9881](https://www.rfc-editor.org/rfc/rfc9881)."}
+    cited = frozenset({"www.rfc-editor.org"})
+    assert lint.allowlist_failures(docs, cited, frozenset()) == []
+    unused = lint.allowlist_failures(docs, cited | {"arxiv.org"}, frozenset())
+    assert len(unused) == 1 and "arxiv.org" in unused[0]
+    # Inside a code span the scan never reads the host, so it keeps no entry alive.
+    in_code = {"a.md": TICK + "https://arxiv.org/abs/2606.16473" + TICK}
+    assert lint.allowlist_failures(in_code, frozenset({"arxiv.org"}), frozenset())
+
+
+def test_the_disclosure_lint_scans_every_tracked_markdown_file():
+    """Until 0.15.4 it read docs/*.md and three root files from a list, and five
+    tracked documents were never scanned."""
+    if not _git_available():
+        pytest.skip("git not available")
+    import tests.lint_disclosure as lint
+
+    out = subprocess.run(["git", "ls-files", "*.md"], cwd=lint.REPO_ROOT,
+                         capture_output=True, text=True)
+    if out.returncode != 0 or not out.stdout.strip():
+        pytest.skip("not a git checkout")
+    scanned = {p.relative_to(lint.REPO_ROOT).as_posix() for p in lint.prose_files()}
+    assert scanned == set(out.stdout.split())
+    assert {"CHANGELOG.md", "ENGINEERING.md", "LICENSING.md", "SECURITY.md",
+            "detection/README.md"} <= scanned
+
+
+def test_an_empty_file_list_fails_both_lints(monkeypatch):
+    """A check over zero files finds nothing, and nothing must not read as a pass."""
+    import tests.lint_disclosure as disclosure
+    import tests.lint_prose as prose
+
+    monkeypatch.setattr(prose, "tracked_files", lambda root=prose.ROOT: [])
+    assert prose.main() == 1
+    monkeypatch.setattr(disclosure, "tracked_files", lambda root=None: [])
+    assert disclosure.check_docs(set())

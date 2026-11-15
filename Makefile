@@ -1,4 +1,4 @@
-.PHONY: help install select collect aggregate score capability report validate verify coverage handshake test lint-sigma lint-disclosure
+.PHONY: help install select collect aggregate score capability report validate verify coverage handshake test lint lint-sigma lint-spl lint-limitations lint-layout lint-disclosure lint-prose
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
@@ -58,7 +58,10 @@ lint-layout:     ## the README repository map, checked against the tree
 lint-disclosure: ## scan committed artefacts for host identifiers
 	python tests/lint_disclosure.py
 
+lint-prose:      ## em-dashes, label vocabulary, unused prose allowlist entries
+	python tests/lint_prose.py
+
 validate:        ## scoring config: saturation, floors, weights, bands
 	pqc-score --validate-config
 
-verify: coverage lint lint-sigma lint-spl validate lint-limitations lint-layout lint-disclosure  ## everything CI runs
+verify: coverage lint lint-sigma lint-spl validate lint-limitations lint-layout lint-disclosure lint-prose  ## everything CI runs

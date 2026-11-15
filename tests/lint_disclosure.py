@@ -6,8 +6,13 @@ on disk. The writers can be bypassed by editing a JSON by hand; this cannot.
 
 Checks:
   data/aggregates/*.json   structural guard, forbidden keys and host-like strings
-  docs/*.md                prose scan, minus declared reference hosts
+  every tracked *.md       prose scan, minus declared reference hosts
   config/targets.yaml      must not be tracked by git
+
+Until 0.15.4 the prose scan read `docs/*.md` and three root files from a
+hand-written list, so five tracked documents were never scanned, the CHANGELOG
+and SECURITY.md among them. The list is now the tracked file list, and an
+empty one fails rather than passing.
 
 Exit code 1 on any violation, so it works as a CI gate or a pre-commit hook.
 """
@@ -29,6 +34,7 @@ from ananke.collectors.disclosure import (  # noqa: E402
     assert_no_host_identifiers,
     scan_text,
 )
+from tests.lint_prose import tracked_files  # noqa: E402
 
 
 def reference_hosts() -> set[str]:
@@ -54,11 +60,18 @@ def check_aggregates() -> list[str]:
     return problems
 
 
+def prose_files() -> list[Path]:
+    """Every tracked markdown file. Derived, because the hand-written list this
+    replaced left five documents unscanned."""
+    return [REPO_ROOT / rel for rel in tracked_files(REPO_ROOT)
+            if rel.endswith(".md") and (REPO_ROOT / rel).is_file()]
+
+
 def check_docs(allowed: set[str]) -> list[str]:
+    prose = prose_files()
+    if not prose:
+        return ["no tracked markdown found; an empty scan is not a pass"]
     problems = []
-    prose = sorted((REPO_ROOT / "docs").glob("*.md"))
-    prose += [REPO_ROOT / f for f in ("README.md", "TODO.md", "CONTRIBUTING.md")
-              if (REPO_ROOT / f).exists()]
     for path in prose:
         found = sorted(set(scan_text(path.read_text(encoding="utf-8"), extra_allowed=allowed)))
         if found:
