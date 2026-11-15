@@ -1,12 +1,13 @@
 # PQC Crypto-Agility Assessment: Report
 
-Generated 2026-08-06 from committed aggregates. Host-level data was not read by this generator and is not available to it.
+Generated 2026-11-15 from committed aggregates. Host-level data was not read for this report.
 
 ## 0. Provenance legend
 
 | Label | Meaning |
 |---|---|
 | `[measured]` | Read from a certificate, a handshake or a log, without interpretation |
+| `[reported]` | Supplied by the party the report is for; fields parsed here, completeness is their claim |
 | `[inference]` | Derived from observable proxies |
 | `[assumption]` | Chosen by the analyst, defensible but not observed |
 | `[speculation]` | Explicitly uncertain, carried through rather than resolved |
@@ -66,17 +67,19 @@ No handshake output present. Requires OpenSSL 3.5 or later and hosts declared in
 
 ## 5. Endpoint crypto capability
 
-No capability analysis present. Run `inventory/pqc_capability.py` against a software inventory export to answer the question that gates the plan: on how many hosts is the crypto stack capable of a hybrid key exchange at all.
+No capability analysis present. Run `pqc-capability --inventory` against a software inventory export to answer the question that gates the plan: on how many hosts is the crypto stack capable of a hybrid key exchange at all.
 
 ## 6. What this assessment does not tell you
 
-- Cryptography at rest.
-- HSMs.
-- Internal PKI, except indirectly through endpoint certificate inventory in the detection layer.
-- Code, embedded libraries, pinned certificates inside applications.
-- The negotiated key exchange group of third-party services. That is not observable from certificate data and would require an active handshake, which is not performed against third-party estate.
-
-A certificate using RSA says nothing about whether the same service already negotiates a hybrid group. Different layers. Conflating them is the most common error in this space.
+- Bulk data encryption (volumes, databases, object stores under AES) is not in migration scope: AES-256 keeps 128 bits of strength against Grover.
+- At rest, the exposure is the layer of RSA and EC keys that wrap data keys. It is counted from an operator-supplied key management export (pqc-keys), not from certificate data.
+- Signing keys carry forgery risk on their own horizon, which the HNDL score does not measure.
+- Application-layer cryptography, such as keys compiled into binaries or encryption written by hand in application code, is not observable.
+- HSM internals beyond the attributes a key management API exposes, and keys held outside any managed service, are not observable.
+- Internal PKI is visible only indirectly, through endpoint certificate inventory in the detection layer.
+- Code, embedded libraries and certificates pinned inside applications are not observable.
+- The key exchange group a third-party service negotiates is not observable from certificate data. It needs an active handshake, which is not performed against third-party estate.
+- A certificate that uses RSA says nothing about whether the same service already negotiates a hybrid group.
 
 ## 7. Scope
 
