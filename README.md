@@ -517,7 +517,7 @@ make verify
 `make verify` is the whole gate, and CI runs exactly that target: the test
 suite with its coverage floor, ruff and mypy, the Sigma and SPL structure
 checks, the scoring config validator, the limitations registry, the repository
-map and the disclosure scan. Green here means green there.
+map, the disclosure scan and the prose lint. Green here means green there.
 
 ### Stage 1: select the sample (defines your denominator)
 

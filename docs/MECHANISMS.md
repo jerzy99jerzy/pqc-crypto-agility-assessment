@@ -249,9 +249,10 @@ Certificate fingerprints are host identifiers, and the guard currently catches
 them by field name (`sha256`) only. A 64-character hex value under another key,
 or inside a free-text string, passes. Value detection is T25.
 
-**The prose scan** runs over `docs/` and three root files (`README.md`,
-`TODO.md`, `CONTRIBUTING.md`), minus hosts declared as `self` or `reference` in
-the allowlist, since naming a positive control is part of the method. It strips
+**The prose scan** runs over every tracked markdown file, minus hosts declared
+as `self` or `reference` in the allowlist, since naming a positive control is
+part of the method. Until 0.15.4 it read `docs/` and three root files from a
+list, which left five tracked documents unscanned. It strips
 fenced blocks and inline code first, because a guard that flags every dotted
 identifier in the documentation gets switched off; the structural guard, which
 has no such exemption, is what runs over collected data.
@@ -266,7 +267,8 @@ benign if a file by that name is in the repository. The prose scan also admits
 the forge (`github.com`, for the CI badge) and, since 0.15.3, a short reviewed
 list of citation hosts: the standards bodies and publishers the documentation
 links to, by exact name. The structural guard consults none of these sets,
-because that is the path collected data travels.
+because that is the path collected data travels. `tests/lint_prose.py` fails the
+build on an entry in either prose list that no tracked document needs.
 
 `tests/lint_disclosure.py` runs the same guards from the outside over files
 already on disk, in CI. The writers can be bypassed by hand-editing a JSON file;
@@ -476,7 +478,8 @@ completeness theirs · `[inference]` derived from observable proxies ·
 `[assumption]` chosen by the analyst, defensible but not observed ·
 `[speculation]` explicitly uncertain and carried through rather than resolved.
 Scoring also emits `unknown` for a component whose input could not be
-identified.
+identified. In the documents, `tests/lint_prose.py` holds every bracketed label
+to the set the README states.
 
 Q-Day is the worked example of the last category: no arrival estimate for a
 cryptographically relevant quantum computer is used anywhere in the arithmetic.

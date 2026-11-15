@@ -3,6 +3,41 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.15.4] - 2026-11-16
+
+The writing rules a machine can check now run in `make verify`, and the
+disclosure scan reads every tracked document instead of a list. No aggregate,
+score or report text changed.
+
+### Security
+- **The disclosure lint never scanned five tracked documents.** It read
+  `docs/*.md` and three root files from a hand-written list, which left out
+  `CHANGELOG.md`, `ENGINEERING.md`, `LICENSING.md`, `SECURITY.md` and
+  `detection/README.md`. A host identifier committed in any of them would have
+  passed CI. The lint now reads the tracked file list; all five pass.
+- **Two prose allowlist entries admitted hosts no document used.**
+  `raw.githubusercontent.com` and `shields.io` were in `_PROSE_INFRASTRUCTURE`
+  from 0.10.0, and `git log -S` finds neither in any document in any commit.
+  The second would not have matched a badge anyway, since badges are served
+  from `img.shields.io`. Both removed.
+
+### Fixed
+- The Makefile's `.PHONY` line lacked `lint`, `lint-spl`, `lint-limitations`
+  and `lint-layout`.
+
+### Added
+- `tests/lint_prose.py`, in `make verify`. It fails the build on an em-dash in
+  any tracked file, or an escape that renders one; on a bracketed label outside
+  the closed set, in a code span anywhere or bare in markdown; and on a prose
+  allowlist entry no tracked document needs. It and the disclosure lint fail on
+  an empty file list instead of passing over nothing.
+- The README's Provenance convention states the status markers as a closed set,
+  `[unknown]` included, and a test holds the lint's vocabulary to it.
+
+### Verified
+- The seven new cases in `tests/test_sprint15.py` fail against v0.15.3 and pass
+  here. `make verify`: 288 passed, coverage 80.15%.
+
 ## [0.15.3] - 2026-11-15
 
 Documentation reconciled with the tree, and sources linked for the first time.

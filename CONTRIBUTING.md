@@ -11,8 +11,8 @@ make verify
 CI calls the same target rather than restating its steps, so green here means
 green there. It runs the test suite with its coverage floor, ruff and mypy, the
 Sigma and SPL structure checks, the scoring config validator, the limitations
-registry, the repository map and the disclosure scan. The `verify` line in the
-`Makefile` is the authoritative list.
+registry, the repository map, the disclosure scan and the prose lint. The
+`verify` line in the `Makefile` is the authoritative list.
 
 Stage new documentation before running it. The prose scan derives the permitted
 filenames from `git ls-files`, so the name of an untracked file is not yet
@@ -42,16 +42,17 @@ These are enforced by code, not by review, and the enforcement is the point.
 
 ## Prose
 
-The repository's prose follows the same discipline as its code.
+The repository's prose follows the same discipline as its code, and
+`tests/lint_prose.py` checks the parts a machine can check.
 
 - No em-dashes anywhere in the tree. A hyphen with spaces or a comma does the
   job.
 - Bracketed provenance labels come from the closed set above. Status markers
   (`[verify]`, `[todo]`, `[done]`, `[deferred]`, `[unknown]`) track work, not
-  evidence.
+  evidence. The lint holds both to the list in the README.
 - A cited source gets a link. The prose scan admits a reviewed list of citation
   hosts, `_PROSE_CITATIONS` in `ananke/collectors/disclosure.py`; adding one is
-  a reviewed change, and an entry no document cites comes off the list.
+  a reviewed change, and an entry no document cites fails the build.
 - Command blocks are safe to paste into zsh: no inline `#` comments, globs
   quoted, no `<placeholder>` arguments, since `<` is a redirection there.
 - A changelog entry names the defect, not the change, and every count in it
