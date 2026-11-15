@@ -2,7 +2,9 @@
 
 Project codename: ANANKE.
 
-Version 1.0, 2026-08-04.
+Version 1.1, 2026-11-15. MVP-A met with the README's own-infrastructure claim
+narrowed; MVP-B notes the partial field run; the commercial note no longer
+contradicts the distance estimate above it.
 
 `TODO.md` states what is not done. This file states what *finished* means, which
 is a different question and was unanswered for eight sprints. Without it every
@@ -15,8 +17,8 @@ product. Each has its own definition of done, its own distance, and its own
 blockers. **Pick one before starting the next sprint.** Two of the three are
 blocked on things no amount of engineering will produce.
 
-Provenance labels follow the repository convention: `[measured]` observed,
-`[inference]` judgement, `[speculation]` explicitly uncertain.
+Provenance labels follow `README.md`. This file also uses `[estimate]` for
+distances and prices sized but not verified.
 
 ---
 
@@ -41,13 +43,13 @@ are the product.
 - [x] Packaging, CI, coverage floor, changelog, license.
 - [x] Security policy, threat model, and a component view a reader can enter
       from (sprint 10).
-- [ ] Every claim in `README.md` backed by something in the tree. **One claim is
-      currently not**: PQC readiness is described as demonstrated against own
-      infrastructure, and no `self` host exists (T2).
+- [x] Every claim in `README.md` backed by something in the tree (0.15.3). The
+      own-infrastructure claim was narrowed: the README states that no `self`
+      host is declared and that the active modality has run against reference
+      implementations only.
 
-**Distance.** `[inference]` Zero sprints of code. One decision: either declare a
-`self` host, or narrow the claim to reference implementations only. An hour
-either way.
+**Distance.** Met in 0.15.3, with the claim narrowed rather than backed. T2
+restores the stronger claim and reverts the narrowing.
 
 **Explicitly out of scope.** Live data. A published figure. Anything requiring a
 tenant, credentials or a customer.
@@ -71,7 +73,9 @@ number was reached.
       real target set (T7).
 - [ ] One complete end-to-end run over a real target set, from ranking through
       selection manifest to sector aggregates, with the raw store retained
-      locally and only aggregates committed.
+      locally and only aggregates committed. A partial run exists (2026-08-06,
+      one sector of nine, `docs/FIELD-RUN.md`); completing it is T23, after
+      T19 and T20.
 - [~] `docs/report.md` generated from that run and readable by a non-technical
       risk owner without a walkthrough. The decision layer and the HTML
       rendering exist (sprint 11); a real target set does not yet.
@@ -122,9 +126,8 @@ write the content, stand the instances up once, validate everything in a single
 session, and add the backend compile step. The path that looked furthest from
 ready is now the one whose blockers dissolved first.
 
-**Commercial note.** `[inference]` This is the highest-margin path in the
-expansion analysis and the furthest from ready. That gap is the decision the
-project has been deferring.
+**Commercial note.** `[inference]` The highest-margin of the three paths,
+because maintained content sells repeatedly without per-engagement work.
 
 ---
 
@@ -150,10 +153,11 @@ available and requires nobody's permission.
 
 ## Integrations not tracked in `TODO.md`
 
-`[inference]` Four gaps that no existing item covers:
+`[inference]` Four gaps that were not tracked when this file was written:
 
 1. **Sigma backend compilation.** The rules parse; there is no evidence they
-   convert to a deployable query for any specific SIEM. Gating for MVP-C.
+   convert to a deployable query for any specific SIEM. Gating for MVP-C, and
+   tracked since as T16.
 2. **Ranking snapshot identity.** Reproducibility needs the Tranco list
    identifier recorded, not a filename.
 3. **Certificate Transparency redundancy.** `crt.sh` is a single free community

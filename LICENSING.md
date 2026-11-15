@@ -33,9 +33,7 @@ for agreed terms. Contact the author to arrange one.
 The assessment methodology, the collection pipeline, and the detection content
 are the value. AGPL keeps that value open and forces anyone who turns it into a
 competing service to contribute their changes back, while the commercial option
-funds continued development for organisations that cannot accept copyleft. This
-is the same open-core / dual-license structure used by projects such as GitLab
-and Grafana.
+funds continued development for organisations that cannot accept copyleft.
 
 ## Contributions
 

@@ -14,148 +14,178 @@ Release criteria and the definition of done for each intended audience live in
 
 ## Thesis
 
-The EU deadline of 2026-12-31 for initial national PQC roadmaps is five months
-out. The bottleneck in that migration is not cryptography. It is inventory:
-identifying every place where vulnerable cryptography is in use. That is a data
-engineering and telemetry problem, not a lattice problem.
+The EU milestone for initial national PQC roadmaps is 2026-12-31. The
+bottleneck in the migration it opens is inventory, not cryptography: finding
+every place where quantum-vulnerable public-key cryptography is in use. That is
+a data engineering and telemetry problem.
 
-So this repository does not sell a finding. "X% of domains in sector Y still
-serve RSA" is trivial to produce and trivial to reproduce. What is not trivial
-is a repeatable pipeline, an explicit provenance layer, and a detection layer
-that puts the result in front of a SOC in language it already uses.
+A headline such as "X% of domains in sector Y still serve RSA" is cheap to
+produce and cheap to reproduce. The work in this repository is the part that
+has to be built and maintained: a repeatable pipeline, an explicit provenance
+layer, and a detection layer that puts the result in front of a SOC in the
+query languages it already runs. [`docs/COMPETITORS.md`](./docs/COMPETITORS.md)
+records which of those parts also exist elsewhere.
 
 ## Regulatory anchors `[measured]`
 
 | Date | Event |
 |---|---|
-| 2024-04-11 | Commission Recommendation (EU) 2024/1101 on a coordinated implementation roadmap for the transition to PQC |
-| 2024-08 | NIST FIPS 203 (ML-KEM), 204 (ML-DSA), 205 (SLH-DSA) finalised |
-| 2025-06-23 | Member States publish the Coordinated Implementation Roadmap |
+| 2024-04-11 | [Commission Recommendation (EU) 2024/1101](https://eur-lex.europa.eu/eli/reco/2024/1101/oj) on a coordinated implementation roadmap for the transition to PQC |
+| 2024-08-13 | NIST [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) (ML-KEM), [204](https://csrc.nist.gov/pubs/fips/204/final) (ML-DSA) and [205](https://csrc.nist.gov/pubs/fips/205/final) (SLH-DSA) published |
+| 2025-06-23 | [Coordinated Implementation Roadmap](https://digital-strategy.ec.europa.eu/en/library/coordinated-implementation-roadmap-transition-post-quantum-cryptography) published by the NIS Cooperation Group |
 | 2026-12-31 | Initial national roadmaps and first steps: identification, awareness |
-| 2030-12-31 | High-risk use cases migrated; quantum-safe upgrades as default |
+| 2030-12-31 | High-risk use cases migrated; quantum-safe upgrades enabled by default |
 | 2035-12-31 | Full transition |
 
-The 2030 milestone carries the sharpest formulation: for high-risk use cases,
-quantum-vulnerable public-key mechanisms must not be used on their own beyond
-the end of 2030. Risk holders in scope: NIS2 entities, financial sector under
-DORA.
+The roadmap's sharpest wording is on the 2030 milestone: for high-risk use
+cases, quantum-vulnerable public-key mechanisms are not to be used stand-alone
+after the end of 2030. Risk holders in scope: NIS2 entities and the financial
+sector under DORA.
 
-Reference hybrid group: `X25519MLKEM768`, IANA codepoint `0x11EC`, naming per
-RFC 9794. Default in OpenSSL 3.5 (LTS through April 2030). PQC algorithm
-identifiers in X.509 per RFC 9881 (ML-DSA) and RFC 9935 (ML-KEM).
+Reference hybrid group: `X25519MLKEM768`, TLS supported-groups codepoint
+`0x11EC`, registered by
+[draft-ietf-tls-ecdhe-mlkem](https://datatracker.ietf.org/doc/draft-ietf-tls-ecdhe-mlkem/),
+with hybrid terminology per [RFC 9794](https://www.rfc-editor.org/rfc/rfc9794).
+It is a default key share in OpenSSL 3.5, an LTS release supported to April
+2030. PQC algorithm identifiers in X.509 follow
+[RFC 9881](https://www.rfc-editor.org/rfc/rfc9881) (ML-DSA) and
+[RFC 9935](https://www.rfc-editor.org/rfc/rfc9935) (ML-KEM).
 
 ## Modalities
 
-The collection design is split cleanly, and the split is enforced in code and
-in directory layout rather than in prose.
+The collection design is split by modality, and the split is enforced in code
+and in directory layout. Each letter matches the modality tag the code writes
+into its output records; C is unassigned.
 
 **Modality A, passive, third-party estate.** Certificate Transparency via
 crt.sh. Zero packets toward any target host. Measured dimensions: public key
 algorithm and parameter, signature algorithm, validity window, whether validity
-outlives the 2030 milestone, PQC algorithm identifiers where present. Output is
-aggregated by sector only, with a minimum bucket size enforced at aggregation
-time. No organisation name is ever emitted next to a vulnerability label.
+outlives the configured milestone, PQC algorithm identifiers where present.
+Output is aggregated by sector only, with a minimum bucket size enforced at
+aggregation time. No organisation name is ever emitted next to a vulnerability
+label.
 
 **Modality B, active, own and reference infrastructure only.** One TLS 1.3
 handshake per target offering `X25519MLKEM768`, reading back the negotiated
 group and inferring HelloRetryRequest. Targets must appear in an allowlist file
-under `self` or `reference`; `active/handshake_demo.py` refuses anything else
-before opening a socket. Reference hosts are public implementations serving
-internet-scale traffic, used as positive controls for the method itself.
+under `self` or `reference`, and `ananke/active/handshake_demo.py` refuses
+anything else before opening a socket. Reference hosts are public
+implementations serving internet-scale traffic, used as positive controls for
+the method itself. No `self` host is declared yet, so the method has been
+demonstrated against reference implementations only (T2 in `TODO.md`).
 
-**Modality rejected: mass active sweep of third-party estate.** Rationale kept
-in `docs/METHODOLOGY.md`. Short version: a single handshake and an nmap run
+**Modality D, the operator's own certificates, offline.** A directory of PEM or
+DER files parsed with the same code and no network peer. Every field is
+measured; that the directory is the whole estate is the operator's claim, so
+the set carries `reported` provenance. `pqc-crosscheck` compares it with the
+same operator's public CT footprint, the one control available on that claim.
+
+**Modality E, at-rest key inventory, reported.** `pqc-keys` reads an export the
+operator produces from their own key management service and emits counts.
+
+**Rejected: mass active sweep of third-party estate.** Rationale in
+[`docs/DECISIONS.md`](./docs/DECISIONS.md). A single handshake and an nmap run
 generate comparable traffic and carry opposite optics, the marginal signal was
 near zero, and the downside was asymmetric.
 
 ## Architecture
 
-The diagram is the pipeline as built: solid arrows are data flow, dashed arrows
-are enforcement. Everything above `data/raw/` is host-level and never committed;
-only sector aggregates and the selection manifest cross into the committed zone.
-The disclosure guard sits on that boundary and fails closed.
+The diagram is the pipeline as built. Solid arrows are data flow, dashed arrows
+are enforcement. Everything in the raw store is host-level and never committed;
+only counts cross into the committed zone, and every writer that produces them
+calls the disclosure guard first. The component view, with a block-to-document
+index, is in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ```mermaid
 flowchart TB
-    subgraph inputs["Inputs (operator-supplied)"]
-        rank["Public ranking\n(Tranco, pinned + hashed)"]
-        inv["Software inventory export\n(optional)"]
-        allow["Allowlist: self + reference hosts"]
+    subgraph inputs["Inputs, operator-supplied"]
+        rank["Public ranking<br/>Tranco, pinned and hashed"]
+        pem["Own certificate dump<br/>PEM or DER directory"]
+        kms["Key management export"]
+        inv["Software inventory export"]
+        allow["Allowlist<br/>self and reference hosts"]
     end
 
-    subgraph modA["Modality A — passive, third-party estate"]
-        sel["select_targets.py\nclassify by sector"]
-        crt["crtsh.py\npublic CT, rate-limited + retried"]
-        cp["certparse.py\nkey / sig / validity\nvuln flags: True / False / None"]
-        store[("store.py\ndata/raw/ — host-level\natomic, TTL, resumable\ngit-ignored")]
-        agg["passive_cert.py\naggregate by sector\nmin bucket size"]
+    subgraph seam["Source seam, sources.py"]
+        sel["select_targets.py<br/>classify by sector"]
+        ct["CrtShSource, modality A<br/>crtsh.py, public CT<br/>rate-limited, retried"]
+        lp["LocalPemSource, modality D<br/>offline, no network peer"]
     end
 
-    subgraph modB["Modality B — active, own + reference only"]
-        hs["handshake_demo.py\none TLS1.3 X25519MLKEM768\nOpenSSL >= 3.5"]
+    cp["certparse.py<br/>key, signature, validity<br/>flags True / False / None"]
+    store[("store.py<br/>data/raw/, host-level<br/>atomic, TTL, resumable<br/>git-ignored")]
+
+    subgraph derive["Counting"]
+        agg["passive_cert.py<br/>sector aggregate<br/>regime, decision layer<br/>minimum bucket"]
+        hndl["hndl_score.py<br/>measured dimensions x<br/>sector horizon assumption"]
+        xc["crosscheck.py<br/>reported estate vs CT"]
+        keys["keys.py, modality E<br/>wrapping vs signing keys"]
+        cap["pqc_capability.py<br/>capable / not_capable / unknown"]
     end
 
-    subgraph cap["Capability"]
-        pqc["pqc_capability.py\nsemantic version vs threshold\ncapable / not_capable / unknown"]
-    end
+    hs["handshake_demo.py, modality B<br/>one TLS 1.3 handshake<br/>OpenSSL 3.5 or later"]
 
-    subgraph scoring["Scoring"]
-        hndl["hndl_score.py\nmeasured dims x sector horizon\nweights.yaml, --validate-config"]
-    end
-
-    guard{{"disclosure.py\nkeys · hostnames · IPv4 · fingerprints\nFAIL CLOSED"}}
+    guard{{"disclosure.py<br/>forbidden keys, hostnames<br/>IPv4, IPv6, bucket size<br/>FAIL CLOSED"}}
 
     subgraph committed["Committed artefacts"]
-        man["selection manifest\n(counts, hashes, no names)"]
-        secagg["sector aggregates\ndata/aggregates/"]
-        scores["sector scores"]
-        report["build_report.py\ndocs/report.md"]
-        detect["detection/\nSigma + KQL"]
+        man["selection manifest<br/>counts and hashes, no names"]
+        rep_in["sector aggregates, scores<br/>capability"]
+        hsrec["handshake record<br/>names allowlisted hosts"]
+        side["key inventory<br/>estate completeness"]
+        report["build_report.py, html_report.py<br/>docs/report.md"]
+        detect["detection/<br/>Sigma, KQL, SPL"]
     end
 
-    rank --> sel --> crt --> cp --> store --> agg
-    sel -.-> man
-    inv --> pqc
+    rank --> sel --> ct
+    pem --> lp
+    ct --> cp
+    lp --> cp
+    cp --> store
+    store --> agg
+    store --> hndl
+    store --> xc
+    kms --> keys
+    inv --> cap
     allow --> hs
+    sel --> man
+    agg --> rep_in
+    hndl --> rep_in
+    cap --> rep_in
+    hs --> hsrec
+    xc --> side
+    keys --> side
+    rep_in --> report
+    hsrec --> report
+    store -. "date pairs, first-party chart only" .-> report
 
-    agg --> hndl
-    pqc --> hndl
-    agg --> secagg
-    hndl --> scores
-    hs --> report
-    secagg --> report
-    scores --> report
-    pqc --> report
-
-    man -.-> guard
-    secagg -.-> guard
-    scores -.-> guard
-    report -.-> guard
-
-    detect -. "SOC-native output,\nno pipeline dependency" .-> report
+    guard -.-> man
+    guard -.-> rep_in
+    guard -.-> side
+    guard -.-> report
 
     classDef raw fill:#2a2a2a,stroke:#888,color:#eee;
     classDef safe fill:#14342b,stroke:#3fae7c,color:#eee;
     classDef gate fill:#3a1414,stroke:#c0564a,color:#fff;
     class store raw;
-    class man,secagg,scores,report,detect safe;
+    class man,rep_in,hsrec,side,report,detect safe;
     class guard gate;
 ```
 
-Reading it in one line: a pinned public ranking defines the denominator, passive
-collection reads public CT into a host-level store that never leaves the
-machine, aggregation collapses it to sectors, scoring folds in the one named
-assumption (sector horizon), and nothing reaches the committed zone without
-clearing the disclosure guard. Modality B and the capability resolver feed the
-same report along independent paths; the detection pack stands alone, consumed
-by a SOC rather than by this pipeline.
+Read in one line: a pinned public ranking defines the denominator, passive
+collection or an offline dump fills a host-level store that never leaves the
+machine, counting collapses it to sectors, scoring folds in the one named
+assumption (the sector horizon), and no count reaches the committed zone without
+clearing the guard. The handshake record is the exception by design: it names
+the allowlisted hosts it probed, so the structural guard is not applied to it
+(T1). Two outputs are not yet rendered by the report: the key inventory and the
+estate completeness check. The detection pack is consumed by a SOC, not by this
+pipeline.
 
 ## Runtime mechanism
 
-The Architecture diagram above is static structure; this one is behaviour over
-time — what actually happens, in order, when a run executes. It is the six
-`make` targets as a sequence, including the two places the run can stop itself:
-the rate-limited collection loop and the fail-closed disclosure guard.
+The Architecture diagram is static structure. This one is the order of a run:
+the six `make` targets plus the offline branch, including the two places a run
+stops itself, the rate-limited collection loop and the fail-closed guard.
 
 ```mermaid
 sequenceDiagram
@@ -175,7 +205,7 @@ sequenceDiagram
 
     alt third-party estate (modality A)
         Op->>CT: make collect
-        loop per domain, rate-limited + retried on 429/5xx
+        loop per domain, rate-limited, retried on 429 and 5xx
             CT-->>ST: parsed dimensions (vuln flags True/False/None)
             Note over ST: atomic write, TTL freshness, resumable
         end
@@ -188,40 +218,51 @@ sequenceDiagram
     Op->>AGG: make aggregate
     AGG->>ST: read host records
     AGG->>G: sector aggregate (counts only)
-    alt host identifier, IPv4, or bucket < min
+    alt host identifier, IP literal, or bucket below minimum
         G--xAGG: FAIL CLOSED, write aborted
     else clean
         G-->>AGG: data/aggregates written
     end
 
     Op->>SC: make score
-    SC-->>Op: sector scores (measured x sector assumption)
+    SC->>ST: read host records
+    SC-->>Op: sector scores (measured x sector assumption), guarded
 
     Op->>CAP: make capability (inventory export)
-    CAP-->>Op: capable / not_capable / unknown (per host)
+    CAP-->>Op: capable / not_capable / unknown, counted, guarded
 
     Op->>REP: make report
     REP->>G: rendered markdown
     G-->>REP: docs/report.md (guard-clean, or build fails)
 ```
 
-Each participant maps to the module that implements it and the section of
-`docs/MECHANISMS.md` that explains it; that mapping table is kept in
-`MECHANISMS.md` so the diagram and the prose cannot drift apart.
+Each participant maps to the module that implements it and to the section of
+[`docs/MECHANISMS.md`](./docs/MECHANISMS.md) that explains it. The mapping table
+lives in that document, so a renamed module leaves a visibly stale row.
 
 ## Provenance convention
 
-Four labels, used in code, in output records and in the report:
+Five labels, used in code, in output records and in the report:
 
-- `[measured]` data read from a certificate, a handshake or a log, without interpretation
+- `[measured]` read from a certificate, a handshake or a log, without
+  interpretation
 - `[reported]` supplied by the party the report is for. Every certificate in an
   operator's dump is parsed here, so the *fields* are measured; what is reported
   is that the dump is the estate. The label sits on the set, not the field
-- `[inference]` risk classification derived from observable proxies
+- `[inference]` derived from observable proxies
+- `[assumption]` chosen by the analyst, defensible but not observed. The sector
+  confidentiality horizon is the one the model depends on
 - `[speculation]` explicitly uncertain, carried through rather than resolved
 
-A composite value inherits the weakest label of its inputs. The HNDL score is
-therefore an inference, not a measurement, and says so in its own output.
+A composite value inherits the weakest label of its inputs, so the HNDL score
+is an inference and says so in its own output. A scoring component whose input
+could not be identified carries `unknown` and prices at 0.5 instead of
+defaulting to either verdict.
+
+Planning documents also use `[estimate]` for a figure sized but not verified,
+and `[not found]` for something searched for and not located, which is weaker
+than absent. Status markers such as `[verify]`, `[todo]`, `[done]` and
+`[deferred]` track work, not evidence.
 
 Ambivalent signals stay open. Where a result could be a collection artefact or
 a real change in posture, the record says so instead of picking the tidier
@@ -229,98 +270,122 @@ reading.
 
 ## HNDL scoring
 
-Built only from observable proxies, because no data classification is available
-and pretending otherwise would be the most consequential lie in the artefact.
+Built only from observable proxies, because no data classification is
+available.
 
 Inputs: certificate key algorithm `[measured]`, signature algorithm
 `[measured]`, validity window `[measured]`, PQC indicators where observable
 `[measured]`, and sector confidentiality horizon `[assumption]`.
 
-Output: years of exposure projected onto the 2030 milestone, plus a weighted
-composite with per-component contributions so the number can be argued with.
+Output: years of exposure projected onto the configured milestone (default
+2030-12-31), plus a weighted composite with per-component contributions so the
+number can be argued with.
 
-All weights, horizons and thresholds live in `scoring/weights.yaml`. If you find
-one hardcoded in `scoring/hndl_score.py`, that is a bug. The sector
-confidentiality horizon is the load-bearing assumption of the entire model and
-is labelled as such in the config, in the code and in every output record.
+All weights, horizons and thresholds live in `ananke/scoring/weights.yaml`. A
+constant hardcoded in `ananke/scoring/hndl_score.py` is a bug, and
+`test_no_hardcoded_weights_in_scoring_module` fails on one. The sector horizon
+is labelled as an assumption in the config, in the code and in every output
+record.
 
 The saturation cap for the exposure term is derived from the longest configured
-horizon rather than set independently, because those two numbers silently had
-to agree and did not: a fixed cap of 20 years against a 30-year horizon
-collapsed healthcare, defence and government onto an identical score on a
-component carrying weight 0.30. `make validate` now fails on that class of
-config drift, and CI runs it.
+horizon, because the two numbers had to agree and nothing checked that they
+did. A fixed cap of 20 years against a 30-year horizon collapsed healthcare,
+defence and government onto one score on a component weighted 0.30. `make
+validate` fails on that class of config drift, and CI runs it.
 
-No Q-Day estimate enters the arithmetic. The model is anchored to a regulatory
-milestone, which is observable, rather than to a forecast, which is not.
+No Q-Day estimate enters the arithmetic: the model is anchored to the
+regulatory milestone, a published date.
 
 ## Detection layer
 
-Sigma rules and KQL queries that surface vulnerable cryptography in enterprise
-telemetry: TLS handshake logs, Microsoft Sentinel and Defender tables, crypto
-library inventory, Key Vault key material. See `detection/README.md`, which
-includes an explicit validation-status table separating what was verified
-locally from what was taken from vendor documentation.
+Sigma rules, KQL queries and SPL searches that surface quantum-vulnerable
+cryptography in enterprise telemetry: TLS handshake logs, Microsoft Sentinel
+and Defender tables, Splunk data models, crypto library inventory, Key Vault
+key material. [`detection/README.md`](./detection/README.md) carries a
+validation-status table that separates what was checked locally from what rests
+on vendor documentation. Every field name is `[inference]` until it has been
+run against a live tenant or indexer (T4, T15).
 
 ## What this assessment will not tell you
 
-Stated up front, because the gap between what a passive assessment measures and
-what a migration programme needs is where most vendor content quietly lives.
+Each bullet below is registered in `tests/lint_limitations.py` with a probe or
+a manual-review note, and the generated report prints the same list from
+`ananke/reporting/limitations.py`.
 
-**Cryptography at rest, in four layers rather than one.** The blanket claim
-that a passive assessment "does not see cryptography at rest" is both too
-pessimistic and too vague to be useful, and it lets a client assume the worst
-about the layer that is fine.
+**Cryptography at rest is four layers, and they differ in exposure and in
+visibility.**
 
 - **Bulk data encryption is not in migration scope at all.** Volumes,
   databases and object stores are encrypted with AES. Grover halves the
   effective strength, so AES-256 retains 128 bits and needs no replacement.
-  This is most of what an organisation means by "encrypted at rest", and it is
-  the part nobody has to budget for.
+  This is most of what an organisation means by "encrypted at rest".
 - **The key-wrapping layer is the real at-rest exposure, and it is
   countable.** Envelope encryption puts data under a symmetric data key and
-  wraps that key with an RSA or EC key encryption key. A quantum adversary does
-  not break the data; it unwraps the key. `pqc-keys` summarises an
+  wraps that key with an RSA or EC key encryption key, so a quantum adversary
+  unwraps the key rather than breaking the data. `pqc-keys` summarises an
   operator-supplied key management export into counts, and
   `detection/kql/arg_keyvault_key_inventory.kql` answers the same question from
   Azure Resource Graph.
 - **Signing keys run on a different clock and are counted separately.** A
   document that must stay verifiable in 2040 and is signed today with RSA-2048
-  is exposed to forgery once a quantum computer exists, which is not
-  harvest-now-decrypt-later and is not what the HNDL score measures. Conflating
-  the two clocks produces a number that means nothing for either.
-- **Application-layer cryptography is not observable** and this project does
-  not pretend otherwise: a key compiled into a binary or encryption performed
-  by hand inside application code has no surface to enumerate.
+  is exposed to forgery once a quantum computer exists. That is not
+  harvest-now-decrypt-later, and the HNDL score does not measure it.
+- **Application-layer cryptography is not observable.** A key compiled into a
+  binary, or encryption written by hand inside application code, has no
+  surface to enumerate.
 
-Beyond that layer:
+Beyond the at-rest layers:
 
 - It does not see HSM internals beyond the attributes a key management API
   exposes, and a key held outside any managed service is invisible to every
-  modality here. That last category is usually the worst part of an estate.
-- It does not see internal PKI, except indirectly through endpoint certificate inventory in the detection layer.
-- It does not see code, embedded libraries, or pinned certificates in applications.
-- It does not see the negotiated key exchange group of third-party services. PQC readiness of key agreement is not observable from certificate data. It requires an active handshake, which this project does not perform against third-party estate.
-- A certificate that uses RSA says nothing about whether that service already negotiates a hybrid group. These are different layers and conflating them is the most common error in this space.
+  modality here. `[inference]` That category is often the worst part of an
+  estate.
+- It does not see internal PKI, except indirectly through endpoint certificate
+  inventory in the detection layer.
+- It does not see code, embedded libraries, or pinned certificates in
+  applications.
+- It does not see the negotiated key exchange group of third-party services.
+  Key agreement readiness is not observable from certificate data. It needs an
+  active handshake, which this project does not perform against third-party
+  estate.
+- A certificate that uses RSA says nothing about whether that service already
+  negotiates a hybrid group. The certificate and the key exchange are separate
+  layers of the handshake.
 
 ## Ethics and scope statement
 
-Every rule below is enforced by code, and the enforcement runs in CI. A scope
-statement that lives only in a README is a scope statement that survives until
-the first inconvenient deadline.
+The rules below are enforced in code, and the enforcement runs in CI. The one
+position that is an argument rather than a check is marked as such.
 
-- Third-party estate: public data only, Certificate Transparency and equivalent public sources. No active traffic, no scanning, no enumeration.
-- Active handshakes: own infrastructure and public reference implementations only, enforced by allowlist in `active/handshake_demo.py`, which refuses an undeclared target before opening a socket. One handshake per target.
-- A single handshake to a documented reference implementation is not reconnaissance. It is the same connection a browser makes, made once, on purpose, with the result written down.
-- Aggregation by sector, minimum bucket size enforced by `collectors/disclosure.py`. Buckets below the threshold are dropped, not reported with n=1.
-- No organisation is named next to a vulnerability finding. `assert_no_host_identifiers` rejects forbidden keys, hostname-shaped strings, IPv4 literals and certificate fingerprints in anything written to `data/aggregates/` or `docs/`.
-- Host-level raw data stays in `data/raw/`, which is git-ignored. Only sector aggregates are committed.
-- Target lists are not committed. `config/targets.yaml` is git-ignored, and `tests/lint_disclosure.py` fails the build if it ever becomes tracked.
+- Third-party estate: public data only, Certificate Transparency and
+  equivalent public sources. No active traffic, no scanning, no enumeration.
+- Active handshakes: own infrastructure and public reference implementations
+  only. `ananke/active/handshake_demo.py` refuses a target the allowlist does
+  not declare as `self` or `reference`, before opening a socket. One handshake
+  per target.
+- Position, not a check: a single handshake to a documented reference
+  implementation is not reconnaissance. It is the connection a browser makes,
+  made once and written down.
+- Aggregation by sector with a minimum bucket size, re-checked at write time by
+  `assert_bucket_sizes`. Sectors below the threshold are dropped, not reported
+  with n=1. Only a source can relax the threshold, and only for a first-party
+  estate. The threshold is a command-line argument on both `pqc-select` and
+  `pqc-collect`, and nothing reconciles the two yet: the 2026-08-06 field run
+  aggregated at 1 against a manifest recorded at 5 (T19).
+- No organisation is named next to a vulnerability finding.
+  `assert_no_host_identifiers` rejects, in anything committed under
+  `data/aggregates/`, the fields that carry host identity by name (`host`,
+  `subject_cn`, `san_dns`, `sha256`, `serial_number` and others),
+  hostname-shaped strings, and IPv4 and IPv6 literals.
+- Host-level raw data stays in `data/raw/`, which is git-ignored. Only sector
+  aggregates are committed.
+- Target lists are not committed. `config/targets.yaml` is git-ignored, and
+  `tests/lint_disclosure.py` fails the build if it ever becomes tracked.
 
-Certificate SHA-256 fingerprints are treated as host identifiers, not as
-metadata. A fingerprint resolves back to a domain through the same public CT
-logs the data came from, so publishing one re-identifies the host that the
-sector aggregation was supposed to protect.
+Certificate SHA-256 fingerprints are treated as host identifiers: a fingerprint
+resolves back to a domain through the same public CT logs the data came from.
+The guard rejects them by field name. A fingerprint carried under another key,
+or inside a free-text string, is not yet caught by value (T25).
 
 ## Layout
 
@@ -369,7 +434,7 @@ pqc-crypto-agility-assessment/
 │   ├── MECHANISMS.md         #   how each mechanism works
 │   ├── MVP.md                #   release criteria per audience, definition of done
 │   ├── THREAT-MODEL.md       #   adversaries against the guard and the number
-│   ├── DECISIONS.md          #   rejected options, and what would reopen each
+│   ├── DECISIONS.md          #   decisions, rejected options, and what would reopen each
 │   ├── COMPETITORS.md        #   what else exists, and what that leaves standing
 │   ├── ROTATION-CADENCE.md   #   issuance cadence as a capability proxy, proposed
 │   ├── FIELD-RUN.md          #   first real run: protocol and observed failures
@@ -391,7 +456,7 @@ pqc-crypto-agility-assessment/
 │   ├── test_sprint12.py      #   cross-check asymmetry, SPL discipline
 │   ├── test_sprint13.py      #   at-rest keys, two clocks
 │   ├── test_sprint14.py      #   IPv6 and byte-string guard bypasses
-│   ├── test_sprint15.py      #   layout exemption, derived both ways
+│   ├── test_sprint15.py      #   layout exemption, report drift, version, citations
 │   ├── validate_sigma.py     # executable checks on the repo itself
 │   ├── validate_spl.py
 │   ├── lint_disclosure.py
@@ -422,31 +487,37 @@ never mixed between the two.
 - Python 3.11 or newer (`python3 --version`).
 - For the active probe only: OpenSSL 3.5 or newer (`openssl version`). Every
   other stage runs without it.
-- Network egress to `crt.sh` for passive collection. Nothing else phones home.
+- Network egress to crt.sh for passive collection. The active probe connects
+  to allowlisted hosts and nothing else; every other stage is offline.
+
+Command blocks below are safe to paste into zsh, the macOS default shell: no
+inline comments, no unquoted globs.
 
 ### Install
 
 ```bash
-git clone <your-remote>/pqc-crypto-agility-assessment.git
+git clone https://github.com/jerzy99jerzy/pqc-crypto-agility-assessment.git
 cd pqc-crypto-agility-assessment
-
-python3 -m venv .venv && source .venv/bin/activate
-make install        # editable install + dev extras (pytest, pytest-cov, pysigma)
+python3 -m venv .venv
+source .venv/bin/activate
+make install
 ```
 
-`make install` runs `pip install -e ".[dev]"`. That puts the six `pqc-*`
-console scripts on your PATH and removes any need to invoke modules by file
-path. Confirm:
+`make install` runs `pip install -e ".[dev]"`, which puts the `pqc-*` console
+scripts on your PATH and adds the development tools (pytest, pytest-cov,
+pySigma, ruff, mypy). Confirm:
 
 ```bash
 pqc-score --help
-make verify         # tests + coverage floor + Sigma structure + config + disclosure lint
+make verify
 ```
 
-If `make verify` is green you have a working install. It runs exactly what CI
-runs, so green here means green there.
+`make verify` is the whole gate, and CI runs exactly that target: the test
+suite with its coverage floor, ruff and mypy, the Sigma and SPL structure
+checks, the scoring config validator, the limitations registry, the repository
+map and the disclosure scan. Green here means green there.
 
-### Stage 1 — select the sample (defines your denominator)
+### Stage 1: select the sample (defines your denominator)
 
 A percentage is meaningless without a stated denominator, so selection is a
 first-class step that records itself. Pin a public ranking file (Tranco or
@@ -454,19 +525,20 @@ equivalent, `rank,domain` CSV) by hash, then classify it.
 
 ```bash
 pqc-select --ranking tranco_2026_07.csv --suffix .pl --top 10000
-# or: make select RANKING=tranco_2026_07.csv SUFFIX=.pl TOP=10000
 ```
 
+`make select RANKING=tranco_2026_07.csv SUFFIX=.pl TOP=10000` does the same.
+
 Outputs:
-- `config/targets.yaml` — the working target list, git-ignored.
-- `data/aggregates/selection_manifest.json` — committed, hashes and per-sector
+- `config/targets.yaml`: the working target list, git-ignored.
+- `data/aggregates/selection_manifest.json`: committed, hashes and per-sector
   counts, no domain names. This is what a reviewer challenges instead of the
   sample itself.
 
 Watch the console for a rule-collision warning. If a domain matched more than
 one sector, the manifest records it; narrow the token in
 `config/classification.yaml`, do not reorder it. Sector keys there must match
-the keys in `scoring/weights.yaml`.
+the keys in `ananke/scoring/weights.yaml`.
 
 Skip this stage if you are supplying `config/targets.yaml` by hand. Its shape:
 
@@ -476,50 +548,57 @@ sectors:
   healthcare: [example-clinic.pl]
 ```
 
-### Stage 2 — passive collection (third-party estate, public data only)
+### Stage 2: passive collection (third-party estate, public data only)
 
 ```bash
 pqc-collect --targets config/targets.yaml -v
-# or: make collect
 ```
 
-This queries Certificate Transparency via `crt.sh`, fetches the current leaf
-certificates and parses their dimensions into `data/raw/certs/<host>.json`. The
-raw store is git-ignored, host-level, resumable: rerun it and hosts still fresh
-(7-day TTL) are skipped. It sends zero packets to any target host.
+`make collect` does the same. This queries Certificate Transparency via crt.sh,
+fetches the current leaf certificates and parses their dimensions into
+`data/raw/certs/<host>.json`. The raw store is git-ignored, host-level and
+resumable: rerun it and hosts still fresh (7-day TTL) are skipped. It sends zero
+packets to any target host.
 
-`crt.sh` is a free community service and rate-limits; the client backs off and
-retries. A large target list takes a while. Then aggregate to sector level:
+crt.sh is a free community service and rate-limits; the client backs off and
+retries, and a large target list takes a while. Run it under `tee` and keep the
+log, because a run whose failures were not captured cannot be described later
+(`docs/FIELD-RUN.md`). Then aggregate to sector level:
 
 ```bash
-pqc-collect --aggregate-only     # or: make aggregate
+pqc-collect --aggregate-only
 ```
 
-Produces `data/aggregates/sectors.json`. Sectors with fewer hosts than
-`--min-bucket` (default 5) are dropped, not reported with n=1. The write is
-refused outright if any host identifier would leak into the aggregate.
+This produces `data/aggregates/sectors.json` (`make aggregate`). Sectors with
+fewer hosts than `--min-bucket` (default 5) are dropped, not reported with n=1,
+and the write is refused outright if a host identifier would leak into the
+aggregate. Pass the same `--min-bucket` you gave `pqc-select`: nothing checks
+yet that the two agree (T19).
 
-### Stage 3 — HNDL scoring
+### Stage 3: HNDL scoring
 
 ```bash
-pqc-score --from-store          # or: make score
+pqc-score --from-store
 ```
 
-Reads the raw store, applies the model in `scoring/weights.yaml`, writes
-`data/aggregates/hndl_sector_scores.json` (sector level). Two diagnostics:
+`make score` does the same. It reads the raw store, applies the model in
+`ananke/scoring/weights.yaml` and writes
+`data/aggregates/hndl_sector_scores.json` at sector level. Two diagnostics:
 
 ```bash
-pqc-score --validate-config     # saturation, floors, weight and band sanity; make validate
+pqc-score --validate-config
 pqc-score --explain '{"sector":"finance","key_quantum_vulnerable":true,
-  "signature_quantum_vulnerable":true,"valid_beyond_2030_milestone":true,
-  "validity_days":398}'         # full per-component breakdown for one subject
+  "signature_quantum_vulnerable":true,"valid_beyond_milestone":true,
+  "validity_days":398}'
 ```
 
-`--validate-config` exits non-zero on an error-severity issue (e.g. a fixed cap
-that saturates the top sectors) and is one of the CI gates. Edit weights and
-horizons in the YAML; nothing is hardcoded in the scorer.
+`--validate-config` (also `make validate`) checks saturation, floors, weights
+and bands, exits non-zero on an error-severity issue such as a fixed cap that
+saturates the top sectors, and is one of the CI gates. `--explain` prints the
+full per-component breakdown for one subject. Edit weights and horizons in the
+YAML; nothing is hardcoded in the scorer.
 
-### Stage 4 — endpoint capability (optional, needs an inventory export)
+### Stage 4: endpoint capability (optional, needs an inventory export)
 
 Answers "on how many hosts can the crypto stack even negotiate a hybrid group",
 which decides whether a finding is a policy ticket or an upgrade ticket. Input
@@ -527,47 +606,55 @@ is a software-inventory CSV (Defender `DeviceTvmSoftwareInventory` export or
 similar) with device, name, vendor and version columns.
 
 ```bash
-pqc-capability --inventory software_export.csv     # make capability INVENTORY=...
-pqc-capability --check openssl 3.4.1               # resolve a single pair, prints the verdict
+pqc-capability --inventory software_export.csv
+pqc-capability --check openssl 3.4.1
 ```
 
-Writes `data/aggregates/pqc_capability.json`. Verdicts are `capable`,
-`not_capable`, or `unknown` for libraries whose threshold is not verified.
-Thresholds and their provenance live in `config/pqc_capability.yaml`. Device
-identifiers are counted and discarded, never written.
+The first writes `data/aggregates/pqc_capability.json` (`make capability
+INVENTORY=software_export.csv`); the second resolves a single pair and prints
+the verdict. Verdicts are `capable`, `not_capable`, or `unknown` for libraries
+whose threshold is not verified. Thresholds and their provenance live in
+`config/pqc_capability.yaml`. Device identifiers are counted and discarded,
+never written.
 
-### Stage 5 — active PQC demonstration (own + reference hosts only)
+### Stage 5: active PQC demonstration (own and reference hosts only)
 
 ```bash
-openssl version                 # must be >= 3.5
-pqc-handshake --allowlist config/reference_hosts.yaml    # make handshake
+openssl version
+pqc-handshake --allowlist config/reference_hosts.yaml
 ```
 
-One TLS 1.3 handshake per allowlisted host offering `X25519MLKEM768`, reading
-back the negotiated group. The probe refuses any host not in the allowlist
-before opening a socket, and refuses to run at all below OpenSSL 3.5 (a negative
-result from an old client would measure the client, not the server). Add your
-own infrastructure under `self` and keep the reference implementations under
-`reference`. To keep a raw transcript for audit:
+`openssl version` must report 3.5 or later; `make handshake` runs the second
+line. One TLS 1.3 handshake per allowlisted host offering `X25519MLKEM768`,
+reading back the negotiated group. The probe refuses any host not in the
+allowlist before opening a socket, and refuses to run at all below OpenSSL 3.5,
+because a negative result from an old client would measure the client, not the
+server. Add your own infrastructure under `self` and keep the reference
+implementations under `reference`. To keep a raw transcript for audit:
 
 ```bash
 pqc-handshake --allowlist config/reference_hosts.yaml --capture-dir captures/
 ```
 
-Captures stay out of version control.
+`captures/` is git-ignored.
 
-### Stage 6 — the report
+### Stage 6: the report
 
 ```bash
-pqc-report                      # or: make report
+pqc-report
 ```
 
-Renders `docs/report.md` from the committed aggregates only. This generator has
-no access to the raw host store by construction, so it cannot leak host data,
-and it scans its own output for host-like strings before writing. Missing
-inputs degrade to an explicit "no data" section rather than a silent gap; a
-missing selection manifest produces a "no denominator reported" note instead of
-an unbacked percentage.
+`make report` does the same. It renders `docs/report.md` from the committed
+aggregates and scans its own output for host-like strings before writing.
+Missing inputs degrade to an explicit "no data" section rather than a silent
+gap; a missing selection manifest produces a "no denominator reported" note
+instead of an unbacked percentage.
+
+`pqc-report --format html` renders the same aggregates to one self-contained
+file. For a first-party estate it also draws a horizon chart from the
+certificates' validity dates, which it reads from the raw store. For a
+third-party estate the chart is withheld, because unique date pairs are
+searchable in CT (`docs/THREAT-MODEL.md`, A7).
 
 ### One-shot
 
@@ -579,102 +666,35 @@ make collect aggregate score report
 
 ### Troubleshooting
 
-- `command not found: pqc-score` — the venv is not active, or `make install`
-  was skipped. `source .venv/bin/activate` then `make install`.
-- `crt.sh unreachable after N attempts` — the service is rate-limiting or down.
+- `command not found: pqc-score`: the venv is not active, or `make install`
+  was skipped. Run `source .venv/bin/activate`, then `make install`.
+- `crt.sh unreachable after N attempts`: the service is rate-limiting or down.
   Raise `--rate` (seconds between calls) and rerun; the store resumes.
-- `preflight failed: OpenSSL 3.0.x cannot offer X25519MLKEM768` — expected on
+- `preflight failed: OpenSSL 3.0.x cannot offer X25519MLKEM768`: expected on
   older OpenSSL. Only Stage 5 needs 3.5; everything else runs regardless.
-- `DisclosureViolation` on report or aggregate — a host identifier reached
+- `DisclosureViolation` on report or aggregate: a host identifier reached
   output. That is the guard doing its job; do not suppress it, find the leak.
-- Coverage below the floor — logic coverage regressed. `make coverage` shows
+- Coverage below the floor: logic coverage regressed. `make coverage` shows
   the missing lines.
 
-## Status
+## Current state
 
-Sprint 1: passive collection, scoring engine, detection rule pack, provenance
-plumbing.
+Release history, with each defect named, is in
+[`CHANGELOG.md`](./CHANGELOG.md). Open work, each item with an acceptance test,
+is in [`TODO.md`](./TODO.md). What *finished* means per audience is in
+[`docs/MVP.md`](./docs/MVP.md).
 
-Sprint 2: sampling with a hashed, auditable selection manifest and rule
-collision detection; the exposure-cap fix described above; the scope statement
-turned into an executable guard with its own lint; report generation; CI.
+Gaps that affect the numbers today `[measured]`:
 
-Sprint 3: test coverage for the collection transport and its failure modes;
-endpoint capability resolution with real semantic version comparison, replacing
-the bucket the KQL query could not resolve; capability section in the report.
-
-Sprint 4: handshake output parser split from the subprocess call and tested
-against synthetic transcripts, closing the largest untested surface without a
-3.5 client; optional real-transcript capture for audit; `TODO.md`, `LICENSE`,
-`CONTRIBUTING.md`; disclosure lint widened to the root prose files.
-
-Sprint 5: verified capability thresholds for GnuTLS (3.8.8) and wolfSSL (5.8.0)
-with references (NSS and LibreSSL verified later, in sprint 7); packaged with
-`pyproject.toml` and six `pqc-*` console scripts, `pip install -e .`, path hacks
-removed from tests via `conftest.py`; coverage measured with an honest floor in
-CI; this runbook.
-
-Sprint 6: correctness review of the shipped tree, which found three defects that
-produced plausible wrong numbers rather than failures. Unidentified key and
-signature algorithms were reported as post-quantum rather than unknown, which
-inflated PQC-adoption counts in the direction that flatters the estate; the
-flags are now tri-state. A truncated version string (`3.5` against a `3.5.0`
-threshold) resolved an upgraded host as `not_capable`. The disclosure guard
-could not see IPv4 literals at all. Each fix carries a regression test that
-fails against the previous release. Coverage floor raised 65 to 70;
-`docs/MECHANISMS.md` added.
-
-Sprint 7: capability thresholds for NSS (3.118) and LibreSSL verified against primary sources, closing the last `null` entries with real values. LibreSSL has no PQC in any released version through 3.9, which is a measured negative, not merely unknown; the resolver now expresses that through `pqc_absent_through` so a confirmed absence at or below the verified version reports `not_capable` while a newer release stays `unknown`.
-
-Sprint 8: correctness review of the disclosure guard itself. Both host patterns
-were anchored on a word boundary, and underscore is a word character, so host
-identity glued to an underscore (`acme_bank.pl`, `host_10.0.0.1`) matched
-nothing and passed the guard silently for eight sprints. Boundaries rewritten,
-with regression cases in both directions. The hand-maintained filename
-allowlist that caused a red build every time a repository document was added is
-gone: permitted filenames are derived from the tracked file list, and admitted
-in the prose scan only, so the structural guard that collected data passes
-through keeps zero filename exemptions.
-
-Sprint 9: a source seam. The collector no longer assumes Certificate
-Transparency is the only way certificates arrive. An operator can supply a
-directory of their own certificates and get the same dimensions offline, with no
-network peer. What the sprint is actually about is the regime a source carries:
-CT is `measured` because the log is a public record nobody curated, while an
-operator's dump is `reported`, since we parse every certificate in it but the
-completeness of the set is the client's claim. Minimum bucket size relaxes only
-for a first-party estate and only because a source said so.
-
-Sprint 12: `pqc-crosscheck`, the only available control on a `reported` estate.
-Nothing inside a directory of certificates can show that the directory is the
-estate, so the check looks for the same operator in a record they do not
-curate. Asymmetric on purpose: publicly logged and undeclared is a finding,
-declared and not publicly logged is not, because internal PKI never reaches a
-public log. Output is counts; the operator reproduces the list locally. Also a
-Splunk detection pack alongside the KQL set, with a structural discipline check
-in `make verify`.
-
-Sprint 13: cryptography at rest, and a correction. The repository had been
-claiming it does not see at-rest cryptography while shipping a query that
-enumerates stored asymmetric keys, and the claim was unhelpful anyway: at rest
-is four layers and only two are post-quantum problems. `pqc-keys` summarises an
-operator-supplied key management export into counts, keeping wrapping and
-signing keys on separate clocks and counting symmetric keys explicitly out of
-scope. The counter worth reading first is the number of keys with no expiry
-set: nobody planned to rotate them, so nobody planned to migrate them.
-
-Sprint 14: the outstanding detections closed. IPv6 literals passed both guards
-and now do not, resolved by nominating candidates with a pattern and letting
-`ipaddress` decide, which is exact where a regex would have to guess about clock
-times and MAC addresses. Byte-string values bypassed the structural walk
-entirely, found by a type checker on its first run after thirteen sprints
-without one. `ruff` and `mypy` joined the gate, and CI now calls `make verify`
-rather than restating its steps, which is how two lints came to be local-only
-for a day.
-
-Open items live in `TODO.md`, each with a status, a blocker where applicable,
-and an acceptance test. What *finished* means, which is a separate question,
-lives in [`docs/MVP.md`](./docs/MVP.md).
+- Nothing reconciles the suppression threshold between selection and
+  aggregation (T19).
+- The aggregate cannot tell a host with no certificate in CT from a host the
+  run never reached (T20).
+- Sector classification is keyword-based, so rule order is a free parameter
+  that moves published counts (T7, T21).
+- No handshake record is committed and no `self` host is declared (T1, T2).
+- One real collection exists, partial: one sector of nine
+  ([`docs/FIELD-RUN.md`](./docs/FIELD-RUN.md)).
 
 ## On the name
 
@@ -691,9 +711,8 @@ because a migration is inconvenient.
 **Inherited brittleness.** In Lem's story a control system fails because it was
 trained into the rigid, compulsive habits of the man who built it, and those
 habits held right up to the moment conditions moved outside what they were
-formed for. That is not an analogy to crypto-agility; it is its definition.
-Cryptography hard-wired into an estate works exactly until the environment
-changes, and the failure is not in the algorithm but in the absence of a seam to
+formed for. That maps directly onto crypto-agility. Cryptography hard-wired
+into an estate works until the environment changes, and then no seam exists to
 replace it through. This project measures how deep that rigidity runs.
 
 The name deliberately avoids a triumphalist register. An artefact whose central

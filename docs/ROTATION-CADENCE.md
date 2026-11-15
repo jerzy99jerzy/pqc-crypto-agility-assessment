@@ -21,8 +21,8 @@ room to vary. Public certificate authorities have issued no ML-DSA roots that
 chain into the Mozilla, Apple, Microsoft or Chrome trust stores, the CA/Browser
 Forum has no merged baseline requirement permitting ML-DSA in publicly trusted
 certificates, and no major browser negotiates ML-DSA for the server certificate
-by default. A ballot to permit it is being drafted, so this will change, but it
-has not changed yet.
+by default. As of that date a ballot to permit it was being drafted. Not
+re-checked for the 2026-11-15 revision.
 
 The quantity that actually predicts whether an organisation meets the 2030
 milestone is therefore not its current algorithm mix. It is whether it can
@@ -75,11 +75,14 @@ alongside the algorithm mix rather than folded into it.
 
 ## Regulatory context that reshapes the metric
 
-`[measured, verified 2026-08-06]` Maximum validity for publicly trusted TLS
-certificates is being cut on a published schedule: 200 days from March 2026,
-100 days from March 2027, 47 days from March 2029. Let's Encrypt additionally
-made an opt-in six-day profile generally available in January 2026 and has
-signalled an intent to shorten its default lifetime over the coming years.
+`[measured, verified 2026-08-06, re-checked 2026-11-15]` Maximum validity for
+publicly trusted TLS certificates is being cut on a published schedule by
+[CA/Browser Forum Ballot SC-081v3](https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/):
+200 days from March 2026, 100 days from March 2027, 47 days from March 2029.
+Let's Encrypt made an opt-in six-day profile
+[generally available](https://letsencrypt.org/2026/01/15/6day-and-ip-general-availability)
+on 2026-01-15 and has signalled an intent to shorten its default lifetime over
+the coming years.
 
 Two consequences, both load-bearing:
 
