@@ -137,8 +137,8 @@ their sources. The structural guard does not consult the list.
 document linked a source, and claims about RFCs, papers and vendor features
 asked to be taken on trust. Admitting the hosts in prose only keeps the strict
 path, the one collected data travels, unchanged; a test pins that each citation
-host still fails there. An entry no document cites comes off the list, so the
-list cannot grow into coverage nobody uses.
+host still fails there. `tests/lint_prose.py` fails on an entry no document
+cites, so the list cannot grow into coverage nobody uses.
 
 **What would change this.** A citation host that is also an assessed estate,
 which would make naming it in prose ambiguous. At that point the host comes off

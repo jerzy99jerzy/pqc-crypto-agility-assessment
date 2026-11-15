@@ -396,6 +396,12 @@ block index executable where you can.
 reader cannot follow is a claim taken on trust. If a guard blocks hostnames in
 prose, give it a reviewed citation list rather than leaving sources unlinked.
 
+**A writing rule a machine can check belongs in the gate.** By 0.15.1 ANANKE had
+28 em-dashes and three different statements of its label set, and two
+allowlist entries had gone unused in every release since 0.10.0. Each now fails
+the build. Fix the existing violations first, in their own commit, so the rule
+lands green and needs no exemption.
+
 **`docs/THREAT-MODEL.md` models adversaries against the tool**, not against the
 world. Include: who benefits from the output being wrong, what an interested
 party supplying input can do, what a hostile input can do to the run itself,

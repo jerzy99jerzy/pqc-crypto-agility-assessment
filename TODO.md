@@ -220,6 +220,8 @@ Finished items move to the list at the end with the release they landed in.
 
 ## Done
 
+- Prose lint in `make verify`: em-dashes, label vocabulary, unused allowlist
+  entries; disclosure scan over every tracked document (0.15.4)
 - Generated report prints the shared limitations list, checked against the
   README registry; builder docstring states the raw-store read;
   `ananke.__version__` read from the distribution (0.15.2)

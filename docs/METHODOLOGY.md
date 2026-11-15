@@ -379,7 +379,7 @@ in. The boundaries are now written explicitly: underscore is a delimiter on the
 left, and a trailing suffix (`bank.pl_backup`) no longer hides a host either.
 
 A second finding, self-inflicted: the CI fix at the end of sprint 7 added
-repository document names to `ALLOWED_TOKENS` to stop the prose lint failing on
+repository document names to `ALLOWED_TOKENS` to stop the prose scan failing on
 `LICENSING.md`. That set was shared with the structural guard, so a fix scoped
 in its own commit message to prose widened the strict guard as well, and
 `{"source": "mechanisms.md"}` became publishable output. The allowlist is now
@@ -424,7 +424,7 @@ structural walk inspected `str` only. A subject encoded in a form
 code reviews and an adversarial fixture suite had not found it. The same sprint
 closed IPv6 literals, which passed both guards (T14).
 
-### 9.7 Releases 0.14.0 to 0.15.3: the repository's description of itself
+### 9.7 Releases 0.14.0 to 0.15.4: the repository's description of itself
 
 | Release | Defect | Why it survived |
 |---|---|---|
@@ -435,6 +435,7 @@ closed IPv6 literals, which passed both guards (T14).
 | 0.15.0, 0.15.1 | the selection manifest recorded a minimum bucket of 5, the aggregate 1, and the changelog misstated what was committed | two invocations, nothing reconciling them (T19) |
 | 0.15.2 | the generated report printed the at-rest claim 0.13.0 had retracted; the builder's docstring denied its own raw-store read; `ananke.__version__` said 0.10.0 | the checks covered the README, not the text other code emits |
 | 0.15.3 | three documents stated the label set differently; both architecture diagrams were unchanged since 0.6.0 and 0.10.1 and drew the scorer reading the aggregate; the threat model listed two closed holes as open; the README said the guard rejects fingerprints, which it does by key only | the checks covered the limitations section and the map, and nothing else a document says about the tree |
+| 0.15.4 | the disclosure lint scanned a hand-written list of documents that left five tracked ones out; two prose allowlist entries were never used, and one could not have matched the badge it was for | the list was written once and never derived, and nothing checked an allowlist entry against use |
 
 ### 9.8 Found by probing for this revision (2026-11-15)
 

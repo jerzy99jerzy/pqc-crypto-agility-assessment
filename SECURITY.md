@@ -8,12 +8,14 @@ This project makes two promises that are enforced in code rather than prose:
 that no packet is sent to a third party's infrastructure, and that no host
 identifier reaches committed output. The first rests on the passive design and
 the allowlist gate in `ananke/active/handshake_demo.py`, the second on
-`ananke/collectors/disclosure.py`. Five defects have been found and fixed in the
-disclosure module, in sprints 6, 8 and 14, each recorded in `CHANGELOG.md` and
-`docs/METHODOLOGY.md`, and a sixth is open: fingerprints are caught by field
-name only (T25). All six were found by the project's own reviews and probes. A
-reviewer who is not the author is the control this project lacks, and this file
-is where such a report goes.
+`ananke/collectors/disclosure.py` and on `tests/lint_disclosure.py`, which runs
+it over committed files. Five defects have been found and fixed in the
+disclosure module, in sprints 6, 8 and 14, and one in the lint, which until
+0.15.4 never scanned five tracked documents. Each is recorded in `CHANGELOG.md`
+and `docs/METHODOLOGY.md`. A seventh is open: fingerprints are caught by field
+name only (T25). All seven were found by the project's own reviews and probes.
+A reviewer who is not the author is the control this project lacks, and this
+file is where such a report goes.
 
 ## Reporting a vulnerability
 
