@@ -46,8 +46,7 @@ differentiator, which is scoring, provenance and detection content.
 
 The pattern is worth naming beyond this instance: reaching for the elaborate,
 cognitively attractive option instead of the repeatable work that closes the
-gap. It recurred later at the level of market selection rather than technique,
-and recognising it the second time was cheaper because it had a name.
+gap.
 
 ---
 
@@ -86,20 +85,64 @@ which is a different claim, and would carry `reported` provenance.
 
 ---
 
-## The limitations section is fixed, not generated
+## The limitations section is fixed, not generated, and states the method's scope
 
-Date: 2026-08-05. Status: adopted
+Date: 2026-08-05, amended 2026-11-15. Status: adopted
 
 **Decision.** The "what this will not tell you" section is written, registered
 in `tests/lint_limitations.py`, and does not shrink based on what a particular
-run happened to include.
+run happened to include. It states the scope of the method as technical facts
+about what passive observation can and cannot see; commentary about the section
+itself stays out of it. The generated report prints the same list (0.15.2).
 
-**Reasoning.** A generated version would disappear exactly when an engagement
-became most complete, which is precisely when a reader most needs to know what
-the number does not cover.
+**Reasoning.** A generated version would disappear when an engagement became
+most complete, which is when a reader most needs to know what the number does
+not cover. `[inference]` These limits describe what public data can show about
+an estate; publishing them gives nobody a way to evade the measurement or the
+guard.
 
-**What would change this.** Nothing. A shorter honest section is achievable by
-writing a shorter one, not by generating it.
+**What would change this.** A change in what the method can observe, in which
+case the section changes with the code and the registry makes the change
+explicit. Or a limitation whose publication would help someone evade the
+measurement or the guard: that one would be kept out of the published section.
+
+---
+
+## A batch orchestrator for the active probe
+
+Date: 2026-07-28. Status: deferred
+
+**Decision.** The active probe runs as a plain loop over the allowlist.
+
+**Reasoning.** Rate limiting, resumability, atomic writes and an idempotent
+per-host store are the right pattern at scale, and the passive collector has
+them because its target count justifies them. For a dozen allowlisted hosts an
+orchestrator adds machinery nothing needs.
+
+**What would change this.** An allowlist large enough that an interrupted run
+costs real time to repeat, which would mean a first-party engagement with many
+declared `self` hosts.
+
+---
+
+## Citation hosts are admitted in the prose scan only
+
+Date: 2026-11-15. Status: adopted
+
+**Decision.** A short, reviewed list of standards bodies and publishers may
+appear as hostnames in committed prose, by exact name, so documents can link
+their sources. The structural guard does not consult the list.
+
+**Reasoning.** Until 0.15.3 the prose scan rejected every hostname, so no
+document linked a source, and claims about RFCs, papers and vendor features
+asked to be taken on trust. Admitting the hosts in prose only keeps the strict
+path, the one collected data travels, unchanged; a test pins that each citation
+host still fails there. An entry no document cites comes off the list, so the
+list cannot grow into coverage nobody uses.
+
+**What would change this.** A citation host that is also an assessed estate,
+which would make naming it in prose ambiguous. At that point the host comes off
+the list and the citation moves into a code span.
 
 ---
 

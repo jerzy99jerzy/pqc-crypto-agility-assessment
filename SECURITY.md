@@ -6,11 +6,14 @@ Project codename: ANANKE. Repository: `pqc-crypto-agility-assessment`.
 
 This project makes two promises that are enforced in code rather than prose:
 that no packet is sent to a third party's infrastructure, and that no host
-identifier reaches committed output. Both are enforced by
-`ananke/collectors/disclosure.py`, and three defects have been found in that
-module across three sprints, each recorded in `docs/METHODOLOGY.md`. The fourth
-will be found by somebody who is not the author, and that person needs a place
-to send it.
+identifier reaches committed output. The first rests on the passive design and
+the allowlist gate in `ananke/active/handshake_demo.py`, the second on
+`ananke/collectors/disclosure.py`. Five defects have been found and fixed in the
+disclosure module, in sprints 6, 8 and 14, each recorded in `CHANGELOG.md` and
+`docs/METHODOLOGY.md`, and a sixth is open: fingerprints are caught by field
+name only (T25). All six were found by the project's own reviews and probes. A
+reviewer who is not the author is the control this project lacks, and this file
+is where such a report goes.
 
 ## Reporting a vulnerability
 
@@ -51,8 +54,7 @@ promises above, and anything that makes the measurement lie.
   third party.
 - Path traversal or overwrite through `--pem-dir`, `--targets`, or an inventory
   export.
-- Anything that causes the run journal or raw store to be written outside
-  `data/`.
+- Anything that causes the raw store to be written outside `data/raw/`.
 
 **Out of scope**
 

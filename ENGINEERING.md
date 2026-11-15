@@ -6,6 +6,11 @@ Version 1.0, 2026-08-05. Distilled from `pqc-crypto-agility-assessment`
 (ANANKE), `cve-digest`, `phantomatics`, `signal-journal-bot` and `gmach`, and
 from what went wrong in each.
 
+Local revision, 2026-11-15: statements about this repository brought up to its
+current state, and three rules added to section 8 from defects found since.
+Sibling repositories carry later versions of this standard and were not
+re-checked for this revision, so section 12 is dated.
+
 Nothing here is aspiration. Every rule exists because its absence produced a
 specific defect that shipped, and the defect is named so the rule can be argued
 with rather than obeyed.
@@ -151,11 +156,13 @@ absence read as success. Configure pytest so zero collected tests is a failure
 zero from the first commit. A gate that passes an empty repo is not a gate, and
 this shipped in the first draft of this very document's starter kit.
 
-**Type checking and style are not optional.** `cve-digest` runs `ruff` and
-`mypy` in CI; ANANKE does not, and the gap is unjustified. Converge upward.
+**Type checking and style are not optional.** ANANKE added `ruff` and `mypy`
+to the gate in 0.14.0, and the type checker found a live guard bypass on its
+first run.
 
 **Test on the version you develop on.** ANANKE's CI pinned 3.12 while local
-work happened on 3.14. Use a matrix with both ends of the supported range.
+work happened on 3.14, until 0.14.0 added a matrix. Use one with both ends of
+the supported range.
 
 ### Dependencies and cost
 
@@ -364,11 +371,30 @@ that does not exist.
 ## 8. Documentation that earns its keep
 
 **`README.md` must contain a "What this will not tell you" section**, and it is
-the part a competent reader reads first. Write it in layers rather than as flat
-denials: "does not see cryptography at rest" is simultaneously false and
-unhelpful when the honest answer is that the layer is four things and two of
-them are out of scope entirely. Then register every bullet in
-`tests/lint_limitations.py` so it cannot go stale.
+the part a competent reader reads first. Write it as the scope of the method:
+technical facts about what the method observes, in layers rather than flat
+denials. "Does not see cryptography at rest" was false and unhelpful at once
+when the accurate answer is that the layer is four things and two of them are
+out of scope entirely. Commentary about the section itself does not belong in
+it. Then register every bullet in `tests/lint_limitations.py` so it cannot go
+stale.
+
+**Generated text is documentation too.** A check that covers the README and not
+the text the code emits leaves the deliverable free to drift. ANANKE's report
+printed the retracted at-rest limitation in eight tagged releases, starting
+with the one that fixed the README, until both renderers read one list the lint
+checks.
+
+**A diagram is a claim about the tree.** When a module is added, renamed or
+removed, every diagram that draws the pipeline changes in the same commit.
+ANANKE's README diagram stayed as drawn in 0.6.0 while the source seam, the
+HTML renderer, the cross-check and the key inventory shipped, and both diagrams
+showed the scorer reading the aggregate when it reads the raw store. Make the
+block index executable where you can.
+
+**Cite with a link.** A claim about an RFC, a paper or a vendor feature that a
+reader cannot follow is a claim taken on trust. If a guard blocks hostnames in
+prose, give it a reviewed citation list rather than leaving sources unlinked.
 
 **`docs/THREAT-MODEL.md` models adversaries against the tool**, not against the
 world. Include: who benefits from the output being wrong, what an interested
@@ -409,8 +435,8 @@ writing to a contact is not.
 
 **Work that requires waiting on someone else takes precedence over work in the
 editor**, because only the first kind has a window. A code item is available at
-midnight in six weeks; a conversation with a prospect is not, and a trial
-licence expires.
+midnight in six weeks; a conversation with someone outside the project is
+not, and a trial licence expires.
 
 **Distinguish the two blocker types explicitly in the backlog.** An engineering
 blocker shrinks when you write code. An access, purchase or decision blocker
@@ -441,7 +467,7 @@ one session.
 that a module exists, that a fix shipped, or that a test covers a case, with the
 same confidence whether or not it checked. In this portfolio that produced a
 false statement about a source adapter that had never been written, which then
-travelled into an email to a prospect. The rule is mechanical: any claim about
+travelled into external correspondence. The rule is mechanical: any claim about
 the current state of the code is `grep`-verified before it is repeated
 anywhere outside the session.
 
@@ -475,8 +501,8 @@ worth.
 
 **`docs/DECISIONS.md` is mandatory, and it records what was rejected.**
 
-ANANKE's project brief has a section on rejected options - a mass active scan,
-an nmap NSE plugin - with the reasoning preserved. It is one of the more
+ANANKE's `docs/DECISIONS.md` records rejected options, among them a mass active
+scan and an nmap NSE plugin, with the reasoning preserved. It is one of the more
 valuable documents in that repository for two reasons. It stops the same option
 being relitigated every few weeks, and it demonstrates operational judgement to
 a technical reader more convincingly than any list of what was built.
@@ -509,16 +535,17 @@ was considered.
 
 ## 12. Convergence across the portfolio
 
-Divergences currently costing more than they buy:
+Divergences recorded on 2026-08-05. Rows ANANKE has since closed are marked;
+the sibling repositories were not re-checked for this revision.
 
 | Divergence | Recommendation |
 | --- | --- |
 | Three licences (MIT, Apache-2.0, AGPL+commercial) | Each may be right; write one paragraph per repo saying why. An unexplained spread is the first thing a partner asks about |
 | Version schemes (`0.7.6.1` vs `0.13.1`) | Pick semver and hold it |
 | Docs case (`MECHANISMS.md` vs `mechanisms.md`) | Uppercase for design documents, portfolio-wide |
-| `ruff`/`mypy` in `cve-digest` only | Everywhere |
-| Python matrix in `cve-digest` only | Everywhere, and include the version you develop on |
-| Hygiene job in `cve-digest` only | Everywhere, it costs four seconds |
+| `ruff`/`mypy` in `cve-digest` only | Everywhere (ANANKE: closed in 0.14.0) |
+| Python matrix in `cve-digest` only | Everywhere, and include the version you develop on (ANANKE: closed in 0.14.0) |
+| Hygiene job in `cve-digest` only | Everywhere, it costs four seconds (ANANKE: closed in 0.14.0) |
 | `docs/MVP.md` in ANANKE only | Everywhere; it is the cheapest document with the largest effect on how a project ends |
 | Releases in ANANKE only | `cve-digest` has a changelog and no tags |
 | `requirements.txt` beside `pyproject.toml` | Keep one source of truth, or state in the file which one it mirrors |

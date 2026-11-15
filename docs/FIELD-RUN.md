@@ -26,10 +26,10 @@ here before it starts.
 
 **Suppression threshold.** `pqc-select --min-bucket` and `pqc-collect
 --min-bucket` are separate arguments with the same default. Nothing reconciles
-them. A selection run at 5 followed by an aggregation run at 1 produces a
+them (T19). A selection run at 5 followed by an aggregation run at 1 produces a
 manifest and an aggregate that disagree about the disclosure policy, and the
-report prints both without comment. Fix the invocation, or record the divergence
-deliberately.
+report prints both without comment. Pass the same value to both, or record the
+divergence deliberately.
 
 **Modality.** One store holds one modality. `MixedModalityError` enforces this,
 but the cheaper control is not to point a first-party collection at a store that
@@ -38,14 +38,20 @@ already holds public CT records.
 ## 2. Command sequence
 
 Under `tee`, always. A run whose failures were not captured cannot be described
-later, which is the single most avoidable loss in this whole exercise.
+later; it is the most avoidable loss in the exercise.
+
+Set the pinned ranking file, the rank cut-off and the threshold first. The
+values below are examples; the block is safe to paste into zsh as written.
 
 ```
 export RUN_ID="$(date +%Y%m%d-%H%M)"
-mkdir -p runs/"$RUN_ID"
-pqc-select --ranking <ranking.csv> --suffix .pl --top <N> 2>&1 | tee runs/"$RUN_ID"/select.log
-pqc-collect --targets config/targets.yaml -v 2>&1 | tee runs/"$RUN_ID"/collect.log
-pqc-collect --aggregate-only 2>&1 | tee runs/"$RUN_ID"/aggregate.log
+export RANKING="tranco_2026_07.csv"
+export TOP="10000"
+export MIN_BUCKET="5"
+mkdir -p "runs/$RUN_ID"
+pqc-select --ranking "$RANKING" --suffix .pl --top "$TOP" --min-bucket "$MIN_BUCKET" 2>&1 | tee "runs/$RUN_ID/select.log"
+pqc-collect --targets config/targets.yaml -v 2>&1 | tee "runs/$RUN_ID/collect.log"
+pqc-collect --aggregate-only --min-bucket "$MIN_BUCKET" 2>&1 | tee "runs/$RUN_ID/aggregate.log"
 pqc-report --format md --out docs/report.md
 ```
 
@@ -103,12 +109,26 @@ the host-without-certificate case, the partial-collection case and the
 cross-invocation threshold divergence had no fixture analogue. All three
 appeared on first contact with real data.
 
-## 4. Open items this run produced
+## 4. History check: 2026-11-15
 
-- Reconcile `min_bucket` across selection and aggregation, with a check that
-  fails when they disagree.
-- Distinguish "no certificate observed" from "host not collected".
-- Sensitivity analysis for rule order in `config/classification.yaml`.
-- Complete the collection across the remaining eight sectors, under `tee`.
-- Characterise crt.sh failure modes from a captured log rather than from
-  recollection.
+`[measured]` All 29 commits on `main` up to v0.15.1 were read for committed
+sector data, because a code fix does not clean what history already holds.
+`data/aggregates/` has only ever tracked `sectors.json` and
+`selection_manifest.json`. `docs/report.md` carried sector rows in two versions:
+
+- 2026-08-05: logistics, 34 hosts, modality `D_first_party_offline`. A minimum
+  bucket of 1 is the designed regime for a first-party estate.
+- 2026-08-06: education, 12 hosts observed, minimum recorded as 1 against a
+  manifest recorded at 5.
+
+No emitted sector bucket in either version held fewer than 5 hosts. The open
+question is the one T19 carries: the threshold is checked against hosts
+observed, and the education figure for quantum-vulnerable keys describes the 3
+hosts with a certificate.
+
+## 5. Open items this run produced
+
+Tracked in `TODO.md`: reconcile the threshold (T19), distinguish no certificate
+from not collected (T20), rule-order sensitivity (T21), complete the
+collection across the remaining eight sectors under `tee` (T23), and
+characterise crt.sh failure modes from a captured log (T24).

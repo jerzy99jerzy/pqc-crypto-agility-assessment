@@ -3,6 +3,98 @@
 All notable changes to this project are documented here.
 Format based on Keep a Changelog; this project uses semantic versioning.
 
+## [0.15.3] - 2026-11-15
+
+Documentation reconciled with the tree, and sources linked for the first time.
+The only behaviour change is in the prose scan, which now admits the hosts the
+documents cite.
+
+### Fixed
+- **Three documents stated the provenance labels differently.** `README.md` and
+  `docs/MECHANISMS.md` each said "four labels" and listed a different four; the
+  code emits five, `reported` and `assumption` included. All of them, and the
+  report legend since 0.15.2, now carry the same five.
+- **Both architecture diagrams were stale and drew the scorer wrong.** The
+  README diagram was unchanged since 0.6.0, the one in `docs/ARCHITECTURE.md`
+  since 0.10.1. Neither drew the cross-check, the key inventory, the HTML
+  renderer or the SPL pack, the README's lacked the source seam and modality D
+  as well, and both drew `hndl_score.py` reading the sector aggregate. It reads
+  the raw store. Both redrawn and parsed with mermaid 11.
+- **The README overstated the guard on fingerprints.** It said the structural
+  guard rejects certificate fingerprints. It rejects the `sha256` field by name
+  and passes the same value under any other key or inside a string (probed,
+  T25).
+- **`docs/THREAT-MODEL.md` described two holes later releases had closed:** IPv6
+  literals, closed in 0.14.0, and the missing control on a reported estate,
+  which `pqc-crosscheck` has provided since 0.12.0.
+- **`ENGINEERING.md` said ANANKE had no ruff, no mypy and no CI matrix**, all
+  added in 0.14.0. `CONTRIBUTING.md` listed four checks in `make verify`.
+  `detection/README.md` named `make sigma-check` and `make spl-check`, which do
+  not exist; the targets are `lint-sigma` and `lint-spl`.
+- **Module paths from before the v0.10.0 namespace move** were still cited in
+  `README.md`, `docs/MECHANISMS.md`, `docs/METHODOLOGY.md` and
+  `CONTRIBUTING.md`.
+- **The README said the 2026-12-31 milestone was "five months out"** and that
+  six console scripts are installed. `pyproject.toml` declares nine. The README
+  now points at the list instead of counting it.
+- **Command blocks in `README.md` and `docs/FIELD-RUN.md` broke in zsh.** An
+  inline `#` comment is an argument there, and `<ranking.csv>` is a
+  redirection.
+- **`docs/METHODOLOGY.md` cited the HAWK attack without a link, as
+  unreproduced.** The HAWK team withdrew the scheme from NIST's process on
+  2026-07-29, accepting the result. The citation now links the announcement,
+  both papers, the forum thread and NIST's round 3 page, and is relabelled.
+- **`LICENSING.md` named GitLab as an example of AGPL dual licensing.** GitLab
+  is open-core under MIT. The comparison is removed.
+- **`docs/MVP.md` contradicted itself on MVP-C**, calling it the furthest from
+  ready under a distance estimate saying its blockers had dissolved first.
+- **`docs/COMPETITORS.md` quoted figures from a paper whose citation was never
+  recorded.** Two searches did not re-locate it, so the figures are withdrawn
+  pending the source, and two located measurements are cited instead.
+- **`docs/DECISIONS.md` gave one decision no revisit condition**, the rule
+  `ENGINEERING.md` section 11 exists to prevent.
+- Em-dashes removed from every tracked file: 17 in `README.md`, 8 in
+  `docs/MECHANISMS.md` and a pair in this file's 0.7.0 entry, after the one in
+  the HTML renderer in 0.15.2. Counted with `grep -o` against v0.15.2.
+
+### Security
+- **Citation hosts admitted in the prose scan only.** No document could link a
+  source, because the prose scan rejected every hostname. A reviewed set of
+  standards bodies and publishers may now appear in committed prose, by exact
+  name. The structural guard does not consult the set, and a test pins that
+  each entry still fails there.
+
+### Added
+- `TODO.md` items T19 to T27 for the gaps found in the field run and in this
+  review. Two came from probes: a handshake record committed under
+  `data/aggregates/`, which is T1's acceptance test, would fail the disclosure
+  lint on its `host` key; and fingerprints are caught by key only (T25).
+- `docs/FIELD-RUN.md` section 4: every commit up to v0.15.1 read for committed
+  sector data. No emitted bucket held fewer than 5 hosts; which count the
+  minimum applies to is open (T19).
+- `docs/DECISIONS.md`: the limitations section as the method's scope, citation
+  hosts in prose only, and the batch orchestrator, moved from
+  `docs/METHODOLOGY.md`.
+
+### Changed
+- `docs/MECHANISMS.md` 2.0, reordered to follow the pipeline.
+  `docs/METHODOLOGY.md` 15.0, without the sprint ledger, with the rejected
+  options moved to `docs/DECISIONS.md` and the defect log completed.
+  `docs/THREAT-MODEL.md` 2.1, `docs/ARCHITECTURE.md` 1.1, `docs/MVP.md` 1.1,
+  where MVP-A is met with the own-infrastructure claim narrowed.
+- The README's "Status" section, a sprint narrative that duplicated this file
+  and skipped sprints 10, 11 and 15, is replaced by "Current state".
+- `TODO.md`: finished items moved to the done list, statuses brought up to
+  date, a second item numbered T11 removed.
+- This file: the 0.10.2 entry reflowed so a code span holding an example
+  hostname sits on one line. The prose scan's span pattern stops at a line
+  break, so the split span left the hostname exposed to it.
+
+### Verified
+- Three of the four new cases in `tests/test_sprint15.py` fail against v0.15.2
+  and pass here. The fourth pins that admission is by exact name, not suffix,
+  and passes on both. `make verify`: 281 passed, coverage 80.15%.
+
 ## [0.15.2] - 2026-11-15
 
 The package described itself wrongly in three places a reader meets: the
@@ -458,9 +550,9 @@ junk file parses in milliseconds with an error recorded.
 ### Security
 - **S1: the sector label could publish an organisation name.** The label given
   with `--sector` becomes a dictionary key in the committed aggregate, and the
-  disclosure guard walks values, never keys, so `--sector "acme-bank.pl
-  production"` shipped a name into the one artefact that promises to contain
-  none. Labels are now shape-validated at the source: a plain categorical
+  disclosure guard walks values, never keys, so
+  `--sector "acme-bank.pl production"` shipped a name into the one artefact
+  that promises to contain none. Labels are now shape-validated at the source: a plain categorical
   token, lowercase, no dots - the dot being exactly what makes a string
   host-shaped. Aggregation re-checks every key independently, so a future
   source that forgets the first check fails at the second.
@@ -672,7 +764,7 @@ of the hand-maintained filename allowlist that produced both.
 
 Capability sprint. Closes the last two `null` entries in the capability
 configuration with primary-sourced values, and adds a resolver mechanism to
-express a *sourced negative* — a confirmed absence — as distinct from unknown.
+express a *sourced negative*, a confirmed absence, as distinct from unknown.
 
 ### Added
 - **NSS capability threshold: 3.118** (`measured`). The standardised ML-KEM TLS
